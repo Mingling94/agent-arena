@@ -19,9 +19,9 @@ benchmark rigor unless the inputs are controlled.
 
 - Run fully in the terminal, including inside iTerm and tmux.
 - Provide a flashier web spectator/replay path without making it a blocker.
-- Ship first-class built-in game modes: `moba` as the default demo mode and
-  `mmo` as the built-in alternate mode.
-- Separate mode, theme, adapter, engine, and renderer responsibilities.
+- Ship first-class built-in skins: `moba` as the default demo skin and
+  `oldschool-mmo` as the alternate built-in skin.
+- Separate skin, adapter, engine, and renderer responsibilities.
 - Support Codex vs Claude Code comparison as the headline demo.
 - Represent subagents as familiars or summons under their parent agent.
 - Use an outcome-weighted scoring model that rewards correctness over raw
@@ -135,13 +135,11 @@ Agent Arena should be renderer-agnostic.
 1. Input adapters ingest saved Codex and Claude Code transcripts and explicit
    event JSONL.
 2. The event normalizer converts raw input into a shared battle event schema.
-3. The selected mode maps normalized events into game vocabulary and observer
-   concepts.
+3. The selected skin maps normalized events into presentation vocabulary,
+   labels, glyphs, colors, animation flavor, and scoreboard wording.
 4. The battle engine applies scoring, damage, status effects, assists, outcomes,
-   fairness labels, and replay timing. It is mode-aware but not theme-specific.
-5. The selected theme controls presentation labels, colors, glyphs, sprite names,
-   animation names, frame style, status names, and event presentation text.
-6. The terminal renderer consumes battle state, mode copy, and theme tokens to
+   fairness labels, and replay timing. It remains generic and skin-independent.
+5. The terminal renderer consumes battle state and skin presentation tokens to
    render a compact arena.
 7. The web spectator consumes the same exported battle state or event stream.
 8. The demo driver emits scripted normalized events.
@@ -149,83 +147,80 @@ Agent Arena should be renderer-agnostic.
 Terminal and web renderers must not parse agent transcripts directly. They only
 consume normalized events or battle state.
 
-## Mode, Theme, Adapter, Engine, Renderer
+## Skin, Adapter, Engine, Renderer
 
-Agent Arena separates five concerns:
+Agent Arena separates four concerns:
 
-- `mode`: game metaphor and event vocabulary.
-- `theme`: visual styling, glyphs, colors, sprites, layout flavor, and text
-  presentation.
+- `skin`: presentation language, labels, colors, glyphs, sprites, layout flavor,
+  animation flavor, event text, and scoreboard wording.
 - `adapter`: transcript and event ingestion.
 - `engine`: normalized battle state, scoring, timing, fairness labels, and
   outcomes.
 - `renderer`: terminal and web rendering.
 
-The battle engine must remain mode-aware but not theme-specific. A theme cannot
-change scoring logic, fairness labels, normalized event semantics, or benchmark
-claims.
+The battle engine must remain generic and outcome-weighted. A skin cannot change
+scoring logic, fairness labels, normalized event semantics, transcript parsing,
+or benchmark claims.
 
-Official bundled themes can include:
+Official bundled skins:
 
-- `terminal`
-- `moba-default`
-- `mmo-default`
+- `moba`
+- `oldschool-mmo`
 
-Third-party themes can later be loaded from a local path or package through a
-generic theme API. They are independently maintained and responsible for their
+Third-party skins can later be loaded from a local path or package through a
+generic skin API. They are independently maintained and responsible for their
 own licensing.
 
-When a requested third-party MOBA theme is unavailable, Agent Arena should fall
-back to the official `moba-default` theme. This fallback must be original and
-generic; it is not a branded replacement or bundled clone of any named game.
+When a requested third-party skin is unavailable, Agent Arena should warn and
+fall back to the official `moba` skin so the hackathon demo remains reliable.
+This fallback must be original and generic; it is not a branded replacement or
+bundled clone of any named game.
 
-## Built-In Modes
+## Built-In Skins
 
-### MOBA Mode
+### `moba` Skin
 
-`moba` is the default hackathon and demo mode. It uses original, legally clean
+`moba` is the default hackathon and demo skin. It uses original, legally clean
 terminology and assets while borrowing familiar structural patterns from
 competitive objective-control games.
 
-Coding activity maps to MOBA-mode vocabulary:
+Coding activity maps to `moba` presentation vocabulary:
 
-- task completion = final objective destroyed
-- test/build/typecheck suite = core objective or base gate
-- failing tests = enemy objective or blocker
-- resolved blocker = objective captured or destroyed
-- subagent = assist, support ally, or pathing ally
-- useful search/context gathering = vision or map control
-- repeated failed command = lost tempo or recovery timer
-- regression = enemy counterpush
-- verified pass = major objective score
+- blocker = objective
+- subagent = assist
+- search/read/context gathering = vision
+- failed loop = lost tempo
+- test/build/typecheck passed = objective secured
+- regression = counterpush
+- task completed = victory
 
 The terminal UI should feel like an esports observer overlay: two sides, center
 objective/blocker, momentum bars, assists, recent event feed, and final
 scorecard.
 
-MOBA mode must use generic terms only. It must not use Riot or League of
+The `moba` skin must use generic terms only. It must not use Riot or League of
 Legends names, including champion, Summoner's Rift, Nexus, Baron, dragon,
 turret names, item names, ability names, icons, or visual trade dress.
 
-### MMO Mode
+### `oldschool-mmo` Skin
 
-`mmo` is a built-in alternate mode and should be implemented after `moba` if
-time is limited. It is useful for longer sessions and replay/storytelling.
+`oldschool-mmo` is a built-in alternate skin and should use the same event
+stream and scoring as `moba`. It is useful for longer sessions and
+replay/storytelling.
 
-Coding activity maps to MMO-mode vocabulary:
+Coding activity maps to `oldschool-mmo` presentation vocabulary:
 
-- task = quest
-- failing tests or type errors = boss or encounter
-- file edits = crafting or gear changes
-- search/context gathering = exploration
-- subagents = familiars or party members
-- verification = quest completion
-- score = XP, reputation, or reward
-- blockers = dungeon hazards
+- blocker = encounter
+- subagent = familiar or party helper
+- search/read/context gathering = exploration
+- file edit = crafting
+- test/build/typecheck passed = quest milestone
+- score = XP or reputation
+- task completed = quest complete
 
-MMO mode must use generic old-school MMO language and original visuals. It must
-not use RuneScape or Jagex names, assets, fonts, items, icons, maps, music, or
-visual trade dress.
+The `oldschool-mmo` skin must use generic old-school MMO language and original
+visuals. It must not use RuneScape or Jagex names, assets, fonts, items, icons,
+maps, music, or visual trade dress.
 
 ## Inputs
 
@@ -268,9 +263,9 @@ should not block it, but the hackathon build should not depend on it.
 
 ## Battle Model
 
-Agents are the player characters. In the default hackathon mode, Codex and
-Claude Code stand on opposite sides of a MOBA-style observer arena using generic
-objective-control vocabulary.
+Agents are the player characters. In the default hackathon skin, Codex and
+Claude Code stand on opposite sides of a generic objective-control observer
+arena.
 
 Project problems are monsters or hazards:
 
@@ -286,9 +281,9 @@ Subagents appear as familiars. A familiar can add chip damage, shields, or
 status effects when it returns useful output. Failed or irrelevant delegated
 work should not receive meaningful score.
 
-In MOBA mode, subagents are presented as assists or support allies. In MMO mode,
-subagents can be presented as familiars or party members. This vocabulary is
-mode-level copy, not scoring logic.
+In the `moba` skin, subagents are presented as assists. In the `oldschool-mmo`
+skin, subagents can be presented as familiars or party helpers. This vocabulary
+is skin-level copy, not scoring logic.
 
 ## Scoring
 
@@ -364,13 +359,13 @@ Required display:
 - Score, health, or momentum meters.
 - Recent event log.
 - Race label.
-- Selected mode and theme labels.
+- Selected skin label.
 - Low-resource animation that works inside iTerm and tmux.
 
 The terminal renderer should use simple ANSI/Unicode graphics and avoid heavy
 dependencies. It should still be readable in plain terminal environments.
 
-For `moba`, the display should prioritize a generic esports observer overlay:
+For the `moba` skin, the display should prioritize a generic esports observer overlay:
 two sides, center objective/blocker, momentum bars, assists, recent event feed,
 and final scorecard.
 
@@ -393,34 +388,28 @@ live streaming dashboard.
 Potential commands:
 
 ```bash
-agent-arena demo --mode moba
-agent-arena demo --mode mmo
-agent-arena replay --events battle.jsonl --mode moba
-agent-arena replay --events battle.jsonl --mode mmo
-agent-arena replay --events battle.jsonl --mode moba --theme terminal
-agent-arena replay --events battle.jsonl --mode moba --theme ./themes/custom-theme
-agent-arena export codex.log claude.log --out battle.json --mode moba
+agent-arena demo --skin moba
+agent-arena demo --skin oldschool-mmo
+agent-arena replay --events battle.jsonl --skin moba
+agent-arena replay --events battle.jsonl --skin oldschool-mmo
+agent-arena replay --events battle.jsonl --skin ./themes/custom-skin
+agent-arena export codex.log claude.log --out battle.json --skin moba
 agent-arena web battle.json
 ```
 
-`moba` should be the default when `--mode` is omitted. Existing `agent-arena
-demo` and `pnpm arena demo` compatibility can remain, but mode selection should
-be first-class.
-
-`moba-default` should be the default theme for `moba`. If a user requests a
-third-party MOBA theme by local path and it cannot be loaded, the CLI should
-warn and use `moba-default` rather than failing the demo path.
+`moba` should be the default when `--skin` is omitted. Existing `agent-arena
+demo` and `pnpm arena demo` compatibility should remain. Existing `--mode`
+support can remain only as a backward-compatible alias for `--skin`.
 
 Exact names can change during implementation, but the CLI should preserve the
-core paths: deterministic demo, transcript replay, exported web replay, mode
-selection, and theme selection.
+core paths: deterministic demo, transcript replay, exported web replay, and
+skin selection.
 
 ## Legal And Product Boundary
 
-Agent Arena ships with original MOBA-inspired and MMO-inspired modes. Named-game
-skins are not official product assets. Third-party themes may be loaded through
-a generic theme API, but they are independently maintained and responsible for
-their own licensing.
+Agent Arena ships with original genre-inspired skins. Named-game skins are not
+official product assets. Third-party skins may be loaded through a generic skin
+API and are independently responsible for licensing.
 
 Do not include League of Legends, RuneScape, Riot, or Jagex branding in official
 commands, filenames, packages, bundled examples, screenshots, or docs except
@@ -502,14 +491,14 @@ The four-hour build should prioritize:
 1. Define normalized event types and battle state.
 2. Implement deterministic demo event stream.
 3. Build terminal arena.
-4. Add mode and theme boundary with `moba` as default.
-5. Make `agent-arena demo --mode moba` the primary demo.
+4. Add skin boundary with `moba` as default.
+5. Make `agent-arena demo --skin moba` the primary demo.
 6. Add explainable scorecard and highlight reel output.
 7. Add transcript/event replay.
 8. Add exportable battle JSON.
 9. Prepare GitHub-ready README, MIT license, and demo script.
 10. Record a 2-minute demo.
-11. Add `--mode mmo` and minimal web replay if time remains.
+11. Add `--skin oldschool-mmo` and minimal web replay if time remains.
 
 The terminal demo should be complete even if the web spectator is only a replay
 prototype.
@@ -544,12 +533,12 @@ prototype.
 ## Acceptance Criteria
 
 - `agent-arena demo` runs a complete Codex vs Claude Code battle in terminal.
-- `agent-arena demo --mode moba` runs a complete Codex vs Claude Code battle in
+- `agent-arena demo --skin moba` runs a complete Codex vs Claude Code battle in
   terminal.
-- Mode labels and event vocabulary change based on selected mode.
-- Built-in mode and theme names are legally clean and generic.
+- Skin labels and event vocabulary change based on selected skin.
+- Built-in skin names are legally clean and generic.
 - Core app does not ship named-game skins or assets.
-- A theme API boundary exists, even if minimal.
+- A skin API boundary exists, even if minimal.
 - The battle shows agents, blockers, summons, scores, and event log.
 - The scoring model rewards outcome events more than activity events.
 - A replay command can consume saved event JSONL or simple transcript fixtures.
