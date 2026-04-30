@@ -93,15 +93,17 @@ function buildReplayBattle(eventCount: number): BattleState {
   return buildBattleReplayState(demoEvents, demoBattleState.label, eventCount)
 }
 
-function EvalSummary({ state }: { state: BattleState }) {
+function EvalSummary({ state, visibleAgentIds }: { state: BattleState; visibleAgentIds: AgentId[] }) {
   const evalModel = buildEvalModel(state)
   const statusClass = (value: boolean, inverted = false) => {
     if (inverted) return value ? 'is-bad' : 'is-good'
     return value ? 'is-good' : ''
   }
+  const isFocused = visibleAgentIds.length === 1
+  const visibleAgents = visibleAgentIds.map((id) => state.agents[id])
 
   return (
-    <article className="panel panel--wide eval-panel">
+    <article className={`panel panel--wide eval-panel ${isFocused ? 'eval-panel--focused' : ''}`}>
       <div className="panel__header">
         <p className="eyebrow">Explainable Eval</p>
         <h2>{evalModel.trustVerdict}</h2>
@@ -111,14 +113,16 @@ function EvalSummary({ state }: { state: BattleState }) {
         <div className="eval-breakdown" aria-label="Score source breakdown">
           <div className="eval-category eval-category--header" aria-hidden="true">
             <span>Source</span>
-            <strong>Codex</strong>
-            <strong>Claude</strong>
+            {visibleAgents.map((agent) => (
+              <strong key={agent.id}>{agent.name}</strong>
+            ))}
           </div>
           {evalModel.categories.map((category) => (
             <div className={`eval-category eval-category--${category}`} key={category}>
               <span>{category}</span>
-              <strong>{formatSigned(evalModel.totals[category].codex)}</strong>
-              <strong>{formatSigned(evalModel.totals[category].claude)}</strong>
+              {visibleAgentIds.map((agentId) => (
+                <strong key={agentId}>{formatSigned(evalModel.totals[category][agentId])}</strong>
+              ))}
             </div>
           ))}
         </div>
@@ -127,12 +131,15 @@ function EvalSummary({ state }: { state: BattleState }) {
           {evalModel.checks.map((check) => (
             <div className="rubric-row" key={check.label}>
               <span>{check.label}</span>
-              <strong className={statusClass(check.codex, check.inverted)}>
-                {check.codex ? (check.inverted ? 'Hit' : 'Pass') : check.inverted ? 'Clear' : 'Wait'}
-              </strong>
-              <strong className={statusClass(check.claude, check.inverted)}>
-                {check.claude ? (check.inverted ? 'Hit' : 'Pass') : check.inverted ? 'Clear' : 'Wait'}
-              </strong>
+              {visibleAgentIds.map((agentId) => {
+                const value = check[agentId]
+
+                return (
+                  <strong className={statusClass(value, check.inverted)} key={agentId}>
+                    {value ? (check.inverted ? 'Hit' : 'Pass') : check.inverted ? 'Clear' : 'Wait'}
+                  </strong>
+                )
+              })}
             </div>
           ))}
         </div>
@@ -305,7 +312,6 @@ function App() {
     () => buildSpectatorModel(battleState, { runtimeMode }),
     [battleState, runtimeMode],
   )
-  const agents: AgentState[] = agentIds.map((id) => battleState.agents[id])
   const winnerAgent =
     battleState.winner === 'codex' || battleState.winner === 'claude'
       ? battleState.agents[battleState.winner]
@@ -318,8 +324,13 @@ function App() {
   const focusedSide = spectator.sides[focusedAgent]
   const skinCssVars = useMemo(() => getSkinCssVars(webSkin), [webSkin])
   const evalModel = useMemo(() => buildEvalModel(battleState), [battleState])
-  const visibleAgents = isLiveSession ? [battleState.agents.codex] : agents
+  const visibleAgentIds: AgentId[] = effectiveViewMode === 'split' ? [...agentIds] : [focusedAgent]
+  const visibleAgents = visibleAgentIds.map((id) => battleState.agents[id])
   const scorecardPhase = runtimeMode === 'demo-replay' && !isReplayComplete ? 'Live' : 'Final'
+  const detailModeLabel =
+    effectiveViewMode === 'split'
+      ? 'Split View'
+      : `${battleState.agents[focusedAgent].name} View`
   const modeLine = isLiveSession
     ? `Live Session · 1P Codex · ${battleState.events.length} events`
     : `Demo Replay · ${replayEventCount}/${demoEvents.length} events`
@@ -331,6 +342,20 @@ function App() {
   const currentReplayEvent = demoEvents[Math.max(0, replayEventCount - 1)]
   const replayProgress = demoEvents.length === 0 ? 100 : (replayEventCount / demoEvents.length) * 100
   const recentEventLines = battleState.log.slice(-3).reverse()
+  const visibleDeltas =
+    effectiveViewMode === 'split'
+      ? battleState.deltas
+      : battleState.deltas.filter((delta) => delta.agent === focusedAgent)
+  const visibleEvents =
+    effectiveViewMode === 'split'
+      ? battleState.events
+      : battleState.events.filter((event) => event.agent === focusedAgent)
+  const visibleHighlights =
+    effectiveViewMode === 'split'
+      ? battleState.highlights
+      : battleState.highlights.filter((highlight) => highlight.includes(battleState.agents[focusedAgent].name))
+  const detailHighlights =
+    visibleHighlights.length > 0 ? visibleHighlights : [spectator.sides[focusedAgent].runStats.task]
 
   const restartReplay = () => {
     setReplayEventCount(0)
@@ -818,10 +843,10 @@ function App() {
         open={isScorecardOpen}
         onToggle={(event) => setIsScorecardOpen(event.currentTarget.open)}
       >
-        <summary>Scorecards, feed, and workflow</summary>
+        <summary>{detailModeLabel} Data</summary>
 
         <section className="battle-grid" aria-label="Replay details">
-          <EvalSummary state={battleState} />
+          <EvalSummary state={battleState} visibleAgentIds={visibleAgentIds} />
 
           <article className="panel final-scorecard">
             <div className="panel__header">
@@ -846,7 +871,7 @@ function App() {
               <h2>Turning Points</h2>
             </div>
             <ul className="highlight-list">
-              {battleState.highlights.map((highlight) => (
+              {detailHighlights.map((highlight) => (
                 <li key={highlight}>{highlight}</li>
               ))}
             </ul>
@@ -858,7 +883,7 @@ function App() {
               <h2>Score Changes</h2>
             </div>
             <ol className="delta-list">
-              {[...battleState.deltas].reverse().map((delta, index) => {
+              {[...visibleDeltas].reverse().map((delta, index) => {
                 const agent = battleState.agents[delta.agent]
 
                 return (
@@ -886,25 +911,12 @@ function App() {
               <h2>Event Feed</h2>
             </div>
             <ol className="event-log">
-              {[...battleState.log].reverse().map((entry, index) => (
-                <li key={`${entry}-${index}`}>{entry}</li>
-              ))}
-            </ol>
-          </article>
+              {[...visibleEvents].reverse().map((event) => {
+                const agent = battleState.agents[event.agent]
 
-          <article className="panel panel--wide codex-workflow">
-            <div className="panel__header">
-              <p className="eyebrow">Built in Codex</p>
-              <h2>Codex Workflow</h2>
-            </div>
-            <ul className="workflow-list">
-              <li>Parallel sessions</li>
-              <li>Worktree implementation</li>
-              <li>Tests, lint, build</li>
-              <li>Codex desktop preview</li>
-              <li>Shared replay/live stream</li>
-              <li>Presentation-only skins</li>
-            </ul>
+                return <li key={event.id}>{agent.name}: {event.label}</li>
+              })}
+            </ol>
           </article>
         </section>
       </details>

@@ -1874,6 +1874,11 @@
   background: rgba(255, 248, 234, 0.045);
 }
 
+.eval-panel--focused .eval-category,
+.eval-panel--focused .rubric-row {
+  grid-template-columns: minmax(88px, 1fr) minmax(84px, auto);
+}
+
 .eval-category span,
 .rubric-row span {
   color: var(--text-muted);
@@ -1979,8 +1984,7 @@
 
 .highlight-list,
 .delta-list,
-.event-log,
-.workflow-list {
+.event-log {
   padding: 0;
   margin: 0;
   list-style: none;
@@ -2068,27 +2072,6 @@
   max-height: 216px;
   overflow: auto;
   padding-right: 3px;
-}
-
-.codex-workflow {
-  border-color: rgba(52, 170, 137, 0.42);
-  background:
-    linear-gradient(135deg, rgba(52, 170, 137, 0.12), transparent 44%),
-    var(--surface);
-}
-
-.workflow-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.workflow-list li {
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface-raised);
-  color: var(--text-strong);
 }
 
 .skin-disclaimer {
@@ -2285,8 +2268,7 @@
   }
 
   .battle-grid,
-  .scorecard-grid,
-  .workflow-list {
+  .scorecard-grid {
     grid-template-columns: 1fr;
   }
 
