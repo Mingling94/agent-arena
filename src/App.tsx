@@ -1,38 +1,16 @@
+import type { AgentId, AgentState, BattleState } from './arena/types'
 import battle from './web/demoBattle.json'
 import './App.css'
 
-type AgentId = 'codex' | 'claude'
-
-type Agent = {
-  id: AgentId
-  name: string
-  score: number
-  health: number
-  momentum: number
-  familiars: string[]
-}
-
-type Delta = {
-  eventId: string
-  agent: AgentId
-  points: number
-  reason: string
-  category: string
-}
-
-type BattleState = {
-  label: string
-  agents: Record<AgentId, Agent>
-  blockers: string[]
-  log: string[]
-  deltas: Delta[]
-  highlights: string[]
-  winner: AgentId
-}
-
+const agentIds = ['codex', 'claude'] as const satisfies readonly AgentId[]
 const battleState = battle as BattleState
-const agents: Agent[] = [battleState.agents.codex, battleState.agents.claude]
-const winner = battleState.agents[battleState.winner]
+const agents: AgentState[] = agentIds.map((id) => battleState.agents[id])
+const winnerAgent =
+  battleState.winner === 'codex' || battleState.winner === 'claude'
+    ? battleState.agents[battleState.winner]
+    : null
+const winnerName =
+  winnerAgent?.name ?? (battleState.winner === 'tie' ? 'Tie' : 'Pending')
 
 function formatSigned(points: number) {
   return points > 0 ? `+${points}` : String(points)
@@ -65,7 +43,13 @@ function StatMeter({
   )
 }
 
-function AgentPanel({ agent, isWinner }: { agent: Agent; isWinner: boolean }) {
+function AgentPanel({
+  agent,
+  isWinner,
+}: {
+  agent: AgentState
+  isWinner: boolean
+}) {
   return (
     <article className={`agent-card ${isWinner ? 'agent-card--winner' : ''}`}>
       <div className="agent-card__header">
@@ -114,7 +98,7 @@ function App() {
         </div>
         <aside className="winner-panel" aria-label="Battle winner">
           <span>Winner</span>
-          <strong>{winner.name}</strong>
+          <strong>{winnerName}</strong>
         </aside>
       </section>
 
