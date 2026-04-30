@@ -67,6 +67,8 @@ Or run the organized tmux demos:
 
 ```bash
 pnpm demo:replay
+pnpm demo:replay:exit
+pnpm demo:replay:loop
 pnpm demo:live
 pnpm demo:compare
 ```
@@ -75,6 +77,12 @@ pnpm demo:compare
 demo repo, opens the real Codex CLI in the lower pane, and emits HUD events
 every second. After Codex opens, it auto-submits a short demo prompt so the
 lower pane visibly starts a response while the HUD tracks progress.
+
+Replay end modes:
+
+- `pnpm demo:replay`: hold the final HUD until Ctrl-C.
+- `pnpm demo:replay:exit`: run a timed 45-second clip, then leave Codex open.
+- `pnpm demo:replay:loop`: loop the HUD event stream continuously.
 
 `demo:live` is the real product-direction mode: it opens the HUD plus Codex pane
 and waits for explicit events in `.agent-arena/live/events.jsonl`.
@@ -92,8 +100,19 @@ Export a skin-neutral battle state and open the Codex-built web replay tool:
 
 ```bash
 pnpm export-demo
-pnpm dev
+pnpm dev --host 127.0.0.1
 ```
+
+Open `http://127.0.0.1:5173` for the official default arena, or append a local
+skin query string such as
+`?skin=..%2Fexternal-skins%2F<local-skin>` for a presentation-only external skin.
+
+The headline recording path is:
+
+1. `pnpm export-demo`
+2. `pnpm dev --host 127.0.0.1`
+3. Open `http://127.0.0.1:5173` in the Codex desktop app browser.
+4. Run the browser `Demo Replay`, then open the final scorecard and eval drawer.
 
 ## Codex Desktop Demo
 
@@ -118,6 +137,12 @@ skin API and are independently responsible for licensing.
 
 See [docs/demo-prep/](docs/demo-prep/) for the 2-minute script, runbook,
 recording checklist, judge Q&A, and pitch snippets.
+
+For the fastest final recording, use
+[docs/demo-prep/recording-script-90s.md](docs/demo-prep/recording-script-90s.md).
+For presentation-only local skins, see [docs/skin-api.md](docs/skin-api.md).
+For explaining the scoring and custom judge boundary, see
+[docs/demo-prep/judge-manifest.md](docs/demo-prep/judge-manifest.md).
 
 ## Design Spec
 

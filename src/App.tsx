@@ -296,6 +296,7 @@ function App() {
   const [replayEventCount, setReplayEventCount] = useState(0)
   const [isReplayPlaying, setIsReplayPlaying] = useState(true)
   const [replaySpeed, setReplaySpeed] = useState<(typeof replaySpeeds)[number]>(1)
+  const [isScorecardOpen, setIsScorecardOpen] = useState(false)
   const replayBattleState = useMemo(() => buildReplayBattle(replayEventCount), [replayEventCount])
   const isReplayComplete = replayEventCount >= demoEvents.length
   const isReplayActivelyPlaying = isReplayPlaying && !isReplayComplete
@@ -334,6 +335,7 @@ function App() {
   const restartReplay = () => {
     setReplayEventCount(0)
     setIsReplayPlaying(true)
+    setIsScorecardOpen(false)
   }
 
   const toggleReplay = () => {
@@ -413,13 +415,23 @@ function App() {
     if (runtimeMode !== 'demo-replay' || !isReplayActivelyPlaying) return undefined
 
     const intervalId = window.setInterval(() => {
-      setReplayEventCount((count) => Math.min(demoEvents.length, count + 1))
+      setReplayEventCount((count) => {
+        const nextCount = Math.min(demoEvents.length, count + 1)
+        return nextCount
+      })
     }, 3000 / replaySpeed)
 
     return () => {
       window.clearInterval(intervalId)
     }
   }, [isReplayActivelyPlaying, replaySpeed, runtimeMode])
+
+  useEffect(() => {
+    if (runtimeMode !== 'demo-replay' || !isReplayComplete) return undefined
+
+    const timeoutId = window.setTimeout(() => setIsScorecardOpen(true), 0)
+    return () => window.clearTimeout(timeoutId)
+  }, [isReplayComplete, runtimeMode])
 
   return (
     <main
@@ -478,7 +490,11 @@ function App() {
         </header>
 
         <div
-          className={`world-frame world-frame--${effectiveViewMode}`}
+          className={[
+            'world-frame',
+            `world-frame--${effectiveViewMode}`,
+            isReplayComplete ? 'world-frame--complete' : '',
+          ].filter(Boolean).join(' ')}
           aria-label="Agent Arena third-person simulator"
         >
           <div className="world-controls">
@@ -540,6 +556,9 @@ function App() {
           {runtimeMode === 'demo-replay' ? (
             <div className="replay-control-bar" aria-label="Demo replay controls">
               <div className="replay-actions">
+                <button type="button" onClick={restartReplay}>
+                  Start Demo
+                </button>
                 <button type="button" onClick={toggleReplay}>
                   {isReplayActivelyPlaying ? 'Pause' : 'Play'}
                 </button>
@@ -711,6 +730,12 @@ function App() {
               <span>{latestCallout}</span>
               <strong>{spectator.victoryLine}</strong>
             </div>
+            {isReplayComplete ? (
+              <div className="final-eval-spotlight">
+                <span>{evalModel.trustLabel}</span>
+                <strong>{evalModel.trustVerdict}</strong>
+              </div>
+            ) : null}
           </div>
 
           <div className="moba-command-hud" aria-label="MOBA command HUD">
@@ -788,7 +813,11 @@ function App() {
         </aside>
       </section>
 
-      <details className="details-drawer">
+      <details
+        className={`details-drawer ${isReplayComplete ? 'details-drawer--complete' : ''}`}
+        open={isScorecardOpen}
+        onToggle={(event) => setIsScorecardOpen(event.currentTarget.open)}
+      >
         <summary>Scorecards, feed, and workflow</summary>
 
         <section className="battle-grid" aria-label="Replay details">

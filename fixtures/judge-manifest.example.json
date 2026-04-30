@@ -1,0 +1,12 @@
+{
+  "mission": "Implement and verify the arena replay",
+  "requiredSignals": ["test_passed", "build_passed", "task_completed"],
+  "preferredSignals": ["judge_verdict", "subagent_spawned"],
+  "penaltySignals": ["test_failed", "blocker_detected"],
+  "acceptedWhen": [
+    "Tests pass",
+    "Production build passes",
+    "Replay can be inspected in Codex desktop",
+    "Scorecard explains why the winner won"
+  ]
+}

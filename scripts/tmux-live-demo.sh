@@ -8,6 +8,7 @@ VIEW="${AGENT_ARENA_VIEW:-focus}"
 MODE="${AGENT_ARENA_MODE:-solo}"
 PROFILE="${AGENT_ARENA_PROFILE:-replay}"
 SCRIPT_SECONDS="${AGENT_ARENA_SCRIPT_SECONDS:-45}"
+END_MODE="${AGENT_ARENA_END_MODE:-hold}"
 LOWER_PANE_FILE="${AGENT_ARENA_LOWER_PANE_FILE:-.agent-arena/live/lower-pane-id}"
 TIMEOUT_FILE="${AGENT_ARENA_TIMEOUT_FILE:-.agent-arena/live/replay-timeout}"
 ARENA_CLI="$ROOT_DIR/node_modules/.bin/tsx src/cli/main.ts"
@@ -71,9 +72,9 @@ emit_after() {
   $ARENA_CLI emit --events "$EVENTS_PATH" --agent "$agent" --type "$type" --label "$label" "$@" >/dev/null
 }
 
-(
+emit_replay_once() {
   if [[ "$PROFILE" == "live" ]]; then
-    exit 0
+    return
   fi
 
   delay=1
@@ -109,6 +110,18 @@ emit_after() {
   emit_after "$delay" codex tool_used "Codex summarizes changed files"
   emit_after "$delay" codex judge_verdict "custom judge accepts the fix" --verdict accepted
   emit_after "$delay" codex task_completed "replay experience completed"
+}
+
+(
+  if [[ "$END_MODE" == "loop" && "$PROFILE" != "live" ]]; then
+    while true; do
+      rm -f "$EVENTS_PATH"
+      emit_replay_once
+      sleep 2
+    done
+  else
+    emit_replay_once
+  fi
 ) &
 emit_pid=$!
 
@@ -122,7 +135,7 @@ else
 fi
 live_pid=$!
 
-if [[ "$PROFILE" != "live" ]]; then
+if [[ "$PROFILE" != "live" && "$END_MODE" == "exit" ]]; then
   (
     sleep "$SCRIPT_SECONDS"
     touch "$TIMEOUT_FILE"
@@ -137,7 +150,7 @@ set -e
 
 if [[ -f "$TIMEOUT_FILE" ]]; then
   printf 'Agent Arena replay segment complete. Codex pane remains open.\n'
-  printf 'Run pnpm demo:replay again to restart the HUD.\n'
+  printf 'Use AGENT_ARENA_END_MODE=hold to keep the HUD open, or loop to replay continuously.\n'
 fi
 
 if [[ "$status" == "130" || "$status" == "143" ]]; then

@@ -78,9 +78,14 @@ try {
     const transcripts = readPositionals(args)
 
     if (!outPath) throw new Error('export requires --out')
-    if (transcripts.length !== 2) throw new Error('export requires two transcript files')
+    if (transcripts.length !== 0 && transcripts.length !== 2) {
+      throw new Error('export requires zero transcript files or two transcript files')
+    }
 
-    const state = runBattle(readTranscriptEvents(transcripts[0], transcripts[1]), 'Matched Race')
+    const state =
+      transcripts.length === 2
+        ? runBattle(readTranscriptEvents(transcripts[0], transcripts[1]), 'Matched Race')
+        : runBattle(demoEvents, 'Demo Mode')
     writeBattleJson(outPath, state)
     console.log(`Wrote ${outPath}`)
   } else {
@@ -228,6 +233,7 @@ function printUsage(): void {
   console.error('   or: pnpm arena scorecard [--skin default|./path]')
   console.error('   or: pnpm arena replay --events fixtures/demo-events.jsonl [--skin default|./path] [--view scene|split|focus|feed] [--agent codex|claude]')
   console.error('   or: pnpm arena replay fixtures/codex-sample.log fixtures/claude-sample.log [--skin default|./path] [--view scene|split|focus|feed] [--agent codex|claude]')
+  console.error('   or: pnpm arena export --out src/web/demoBattle.json [--skin default|./path]')
   console.error('   or: pnpm arena export fixtures/codex-sample.log fixtures/claude-sample.log --out src/web/demoBattle.json [--skin default|./path]')
   console.error('Compatibility aliases: --skin moba, --skin oldschool-mmo, --mode <skin>')
 }

@@ -148,6 +148,10 @@
     #151410;
 }
 
+.world-frame--complete {
+  box-shadow: inset 0 0 0 1px rgba(238, 183, 85, 0.18);
+}
+
 .arena-shell--custom-skin .world-frame {
   background:
     radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--accent-warm) 18%, transparent), transparent 18rem),
@@ -352,6 +356,12 @@
   color: var(--accent-warm);
 }
 
+.replay-actions > button:first-child {
+  border-color: rgba(82, 183, 136, 0.42);
+  background: rgba(82, 183, 136, 0.14);
+  color: var(--accent-green);
+}
+
 .replay-progress {
   display: grid;
   gap: 6px;
@@ -546,6 +556,38 @@
   z-index: 1;
   min-height: 430px;
   overflow: hidden;
+}
+
+.final-eval-spotlight {
+  position: absolute;
+  right: 24px;
+  bottom: 22px;
+  z-index: 9;
+  display: grid;
+  max-width: min(380px, 44%);
+  gap: 4px;
+  padding: 10px 14px;
+  border: 1px solid rgba(82, 183, 136, 0.34);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(82, 183, 136, 0.18), rgba(18, 17, 15, 0.82)),
+    rgba(18, 17, 15, 0.72);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(14px);
+}
+
+.final-eval-spotlight span {
+  color: var(--accent-green);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.final-eval-spotlight strong {
+  color: var(--text-strong);
+  font-size: 0.8rem;
+  line-height: 1.25;
 }
 
 .scene-divider {
@@ -1740,6 +1782,10 @@
   background: rgba(18, 17, 15, 0.58);
 }
 
+.details-drawer--complete {
+  border-color: rgba(238, 183, 85, 0.34);
+}
+
 .details-drawer summary {
   display: flex;
   align-items: center;
@@ -2209,6 +2255,12 @@
 
   .boss-objective {
     top: 34%;
+  }
+
+  .final-eval-spotlight {
+    right: 12px;
+    bottom: 14px;
+    max-width: calc(100% - 24px);
   }
 
   .summon-party {

@@ -1,202 +1,236 @@
 {
-  "label": "Matched Race",
+  "label": "Demo Mode",
   "events": [
     {
-      "id": "codex-1",
-      "type": "tool_used",
+      "id": "d1",
+      "type": "agent_started",
       "agent": "codex",
       "at": 1,
-      "label": "tool used"
+      "label": "entered the repo"
     },
     {
-      "id": "claude-1",
-      "type": "tool_used",
+      "id": "d2",
+      "type": "agent_started",
       "agent": "claude",
       "at": 1,
-      "label": "tool used"
+      "label": "entered the repo"
     },
     {
-      "id": "codex-2",
-      "type": "test_passed",
-      "agent": "codex",
-      "at": 2,
-      "label": "tests passed"
-    },
-    {
-      "id": "claude-2",
-      "type": "file_changed",
-      "agent": "claude",
-      "at": 2,
-      "label": "file changed"
-    },
-    {
-      "id": "codex-3",
-      "type": "file_changed",
-      "agent": "codex",
-      "at": 3,
-      "label": "file changed"
-    },
-    {
-      "id": "claude-3",
+      "id": "d3",
       "type": "tool_used",
       "agent": "claude",
-      "at": 3,
-      "label": "tool used"
+      "at": 2,
+      "label": "mapped the file tree"
     },
     {
-      "id": "codex-4",
+      "id": "d4",
+      "type": "tool_used",
+      "agent": "codex",
+      "at": 3,
+      "label": "read the spec and package scripts"
+    },
+    {
+      "id": "d5",
+      "type": "blocker_detected",
+      "agent": "codex",
+      "at": 4,
+      "label": "Type Error Hydra appeared"
+    },
+    {
+      "id": "d6",
       "type": "subagent_spawned",
       "agent": "codex",
-      "at": 4,
-      "label": "subagent spawned"
-    },
-    {
-      "id": "claude-4",
-      "type": "test_failed",
-      "agent": "claude",
-      "at": 4,
-      "label": "tests failed"
-    },
-    {
-      "id": "codex-5",
-      "type": "tool_used",
-      "agent": "codex",
       "at": 5,
-      "label": "tool used"
+      "label": "Test familiar summoned"
     },
     {
-      "id": "claude-5",
+      "id": "d7",
       "type": "file_changed",
       "agent": "claude",
-      "at": 5,
-      "label": "file changed"
+      "at": 6,
+      "label": "patched UI quickly"
     },
     {
-      "id": "codex-6",
+      "id": "d8",
+      "type": "test_failed",
+      "agent": "claude",
+      "at": 7,
+      "label": "lint failed after patch"
+    },
+    {
+      "id": "d9",
+      "type": "fix_applied",
+      "agent": "codex",
+      "at": 8,
+      "label": "fixed event reducer edge case"
+    },
+    {
+      "id": "d10",
+      "type": "test_passed",
+      "agent": "codex",
+      "at": 9,
+      "label": "unit tests passed"
+    },
+    {
+      "id": "d11",
       "type": "build_passed",
       "agent": "codex",
-      "at": 6,
-      "label": "build passed"
+      "at": 10,
+      "label": "production build passed"
+    },
+    {
+      "id": "d12",
+      "type": "judge_verdict",
+      "agent": "codex",
+      "at": 11,
+      "label": "custom judge accepted outcome",
+      "verdict": "accepted"
+    },
+    {
+      "id": "d13",
+      "type": "task_completed",
+      "agent": "codex",
+      "at": 12,
+      "label": "match replay delivered"
     }
   ],
   "agents": {
     "codex": {
       "id": "codex",
       "name": "Codex",
-      "score": 560,
-      "health": 100,
+      "score": 1415,
+      "health": 93.33333333333333,
       "momentum": 60,
       "familiars": [
-        "subagent spawned"
+        "Test familiar summoned"
       ]
     },
     "claude": {
       "id": "claude",
       "name": "Claude Code",
-      "score": 10,
+      "score": -25,
       "health": 80,
-      "momentum": 30,
+      "momentum": 10,
       "familiars": []
     }
   },
   "blockers": [
-    "tests failed"
+    "lint failed after patch",
+    "Type Error Hydra appeared"
   ],
   "log": [
-    "Codex: tool used (+10)",
-    "Claude Code: tool used (+10)",
-    "Codex: tests passed (+220)",
-    "Claude Code: file changed (+25)",
-    "Codex: file changed (+25)",
-    "Claude Code: tool used (+10)",
-    "Codex: subagent spawned (+35)",
-    "Claude Code: tests failed (-60)",
-    "Codex: tool used (+10)",
-    "Claude Code: file changed (+25)",
-    "Codex: build passed (+260)"
+    "Codex: entered the repo (+0)",
+    "Claude Code: entered the repo (+0)",
+    "Claude Code: mapped the file tree (+10)",
+    "Codex: read the spec and package scripts (+10)",
+    "Codex: Type Error Hydra appeared (-20)",
+    "Codex: Test familiar summoned (+35)",
+    "Claude Code: patched UI quickly (+25)",
+    "Claude Code: lint failed after patch (-60)",
+    "Codex: fixed event reducer edge case (+90)",
+    "Codex: unit tests passed (+220)",
+    "Codex: production build passed (+260)",
+    "Codex: custom judge accepted outcome (+500)",
+    "Codex: match replay delivered (+320)"
   ],
   "deltas": [
     {
-      "eventId": "codex-1",
+      "eventId": "d1",
       "agent": "codex",
-      "points": 10,
-      "reason": "tool used",
+      "points": 0,
+      "reason": "entered the repo",
       "category": "activity"
     },
     {
-      "eventId": "claude-1",
+      "eventId": "d2",
+      "agent": "claude",
+      "points": 0,
+      "reason": "entered the repo",
+      "category": "activity"
+    },
+    {
+      "eventId": "d3",
       "agent": "claude",
       "points": 10,
-      "reason": "tool used",
+      "reason": "mapped the file tree",
       "category": "activity"
     },
     {
-      "eventId": "codex-2",
+      "eventId": "d4",
       "agent": "codex",
-      "points": 220,
-      "reason": "tests passed",
-      "category": "outcome"
-    },
-    {
-      "eventId": "claude-2",
-      "agent": "claude",
-      "points": 25,
-      "reason": "file changed",
-      "category": "activity"
-    },
-    {
-      "eventId": "codex-3",
-      "agent": "codex",
-      "points": 25,
-      "reason": "file changed",
-      "category": "activity"
-    },
-    {
-      "eventId": "claude-3",
-      "agent": "claude",
       "points": 10,
-      "reason": "tool used",
+      "reason": "read the spec and package scripts",
       "category": "activity"
     },
     {
-      "eventId": "codex-4",
+      "eventId": "d5",
       "agent": "codex",
-      "points": 35,
-      "reason": "subagent spawned",
-      "category": "activity"
-    },
-    {
-      "eventId": "claude-4",
-      "agent": "claude",
-      "points": -60,
-      "reason": "tests failed",
+      "points": -20,
+      "reason": "Type Error Hydra appeared",
       "category": "penalty"
     },
     {
-      "eventId": "codex-5",
+      "eventId": "d6",
       "agent": "codex",
-      "points": 10,
-      "reason": "tool used",
+      "points": 35,
+      "reason": "Test familiar summoned",
       "category": "activity"
     },
     {
-      "eventId": "claude-5",
+      "eventId": "d7",
       "agent": "claude",
       "points": 25,
-      "reason": "file changed",
+      "reason": "patched UI quickly",
       "category": "activity"
     },
     {
-      "eventId": "codex-6",
+      "eventId": "d8",
+      "agent": "claude",
+      "points": -60,
+      "reason": "lint failed after patch",
+      "category": "penalty"
+    },
+    {
+      "eventId": "d9",
+      "agent": "codex",
+      "points": 90,
+      "reason": "fixed event reducer edge case",
+      "category": "outcome"
+    },
+    {
+      "eventId": "d10",
+      "agent": "codex",
+      "points": 220,
+      "reason": "unit tests passed",
+      "category": "outcome"
+    },
+    {
+      "eventId": "d11",
       "agent": "codex",
       "points": 260,
-      "reason": "build passed",
+      "reason": "production build passed",
+      "category": "outcome"
+    },
+    {
+      "eventId": "d12",
+      "agent": "codex",
+      "points": 500,
+      "reason": "Custom judge: custom judge accepted outcome",
+      "category": "judge"
+    },
+    {
+      "eventId": "d13",
+      "agent": "codex",
+      "points": 320,
+      "reason": "match replay delivered",
       "category": "outcome"
     }
   ],
   "highlights": [
-    "Codex landed a major hit: tests passed",
-    "Codex landed a major hit: build passed"
+    "Codex landed a major hit: unit tests passed",
+    "Codex landed a major hit: production build passed",
+    "Codex received judge verdict: custom judge accepted outcome",
+    "Codex landed a major hit: match replay delivered"
   ],
   "winner": "codex"
 }

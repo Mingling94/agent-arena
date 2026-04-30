@@ -1,0 +1,9 @@
+{"id":"live-1","type":"agent_started","agent":"codex","at":1,"label":"Codex opened the mission repo"}
+{"id":"live-2","type":"tool_used","agent":"codex","at":2,"label":"read docs and package scripts"}
+{"id":"live-3","type":"blocker_detected","agent":"codex","at":3,"label":"web replay had stale demo data","severity":"medium"}
+{"id":"live-4","type":"subagent_spawned","agent":"codex","at":4,"label":"verification helper started"}
+{"id":"live-5","type":"fix_applied","agent":"codex","at":5,"label":"wired export-demo to canonical replay"}
+{"id":"live-6","type":"test_passed","agent":"codex","at":6,"label":"unit tests passed"}
+{"id":"live-7","type":"build_passed","agent":"codex","at":7,"label":"production build passed"}
+{"id":"live-8","type":"judge_verdict","agent":"codex","at":8,"label":"custom judge accepted demo readiness","verdict":"accepted"}
+{"id":"live-9","type":"task_completed","agent":"codex","at":9,"label":"live replay demo polished"}

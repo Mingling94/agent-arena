@@ -60,6 +60,8 @@ Product-direction live stream:
 
 ```bash
 pnpm demo:replay
+pnpm demo:replay:exit
+pnpm demo:replay:loop
 pnpm demo:live
 pnpm demo:compare
 pnpm demo:reply
@@ -77,7 +79,9 @@ Desktop logs.
 
 Use `pnpm demo:replay` for the recording shot: it opens the real Codex CLI in a
 throwaway demo repo, auto-submits a short prompt, and emits HUD events every
-second while Codex responds.
+second while Codex responds. It holds the final HUD until Ctrl-C.
+Use `pnpm demo:replay:exit` for a timed clip. Use `pnpm demo:replay:loop` for a
+continuous kiosk-style replay.
 Use `pnpm demo:live` when you want the real explicit-event live mode. Use
 `pnpm demo:compare` when you want the Codex vs Claude Code race.
 
