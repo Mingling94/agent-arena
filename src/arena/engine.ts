@@ -9,6 +9,7 @@ const AGENT_NAMES: Record<AgentId, string> = {
 export function createInitialBattle(label: RaceLabel): BattleState {
   return {
     label,
+    events: [],
     agents: {
       codex: { id: 'codex', name: AGENT_NAMES.codex, score: 0, health: 100, momentum: 0, familiars: [] },
       claude: { id: 'claude', name: AGENT_NAMES.claude, score: 0, health: 100, momentum: 0, familiars: [] },
@@ -53,6 +54,7 @@ export function runBattle(events: BattleEvent[], label: RaceLabel): BattleState 
     }
 
     state.deltas.push(delta)
+    state.events.push(event)
     state.log.push(`${agent.name}: ${event.label} (${delta.points >= 0 ? '+' : ''}${delta.points})`)
   }
 

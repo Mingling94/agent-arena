@@ -47,6 +47,7 @@ export interface AgentState {
 
 export interface BattleState {
   label: RaceLabel
+  events: BattleEvent[]
   agents: Record<AgentId, AgentState>
   blockers: string[]
   log: string[]

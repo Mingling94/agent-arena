@@ -20,9 +20,9 @@ describe('terminal arena demo', () => {
     expect(output).toContain('tempo')
     expect(output).toContain('assist')
     expect(output).toContain('observer feed')
-    expect(output).toContain('Type Error Hydra appeared')
+    expect(output).toContain('objective contested')
     expect(output).toContain('Test familiar summoned')
-    expect(output).toContain('Codex landed a major hit')
+    expect(output).toContain('objective secured')
   })
 
   it('renders alternate oldschool mmo vocabulary', () => {
@@ -34,6 +34,7 @@ describe('terminal arena demo', () => {
     expect(output).toContain('reputation')
     expect(output).toContain('party helper')
     expect(output).toContain('adventure log')
+    expect(output).toContain('quest milestone')
   })
 
   it('formats an explainable scorecard with score deltas', () => {
@@ -44,7 +45,7 @@ describe('terminal arena demo', () => {
     expect(output).toContain('objective score')
     expect(output).toContain('observer feed')
     expect(output).toContain('Winner: Codex')
-    expect(output).toContain('+500 Codex: Custom judge: custom judge accepted outcome [judge]')
-    expect(output).toContain('-60 Claude Code: lint failed after patch [penalty]')
+    expect(output).toContain('+500 Codex: judge verdict - Custom judge: custom judge accepted outcome [judge]')
+    expect(output).toContain('-60 Claude Code: lost tempo - lint failed after patch [penalty]')
   })
 })
