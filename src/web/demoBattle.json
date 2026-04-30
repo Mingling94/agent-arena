@@ -1,0 +1,123 @@
+{
+  "label": "Matched Race",
+  "agents": {
+    "codex": {
+      "id": "codex",
+      "name": "Codex",
+      "score": 560,
+      "health": 100,
+      "momentum": 60,
+      "familiars": [
+        "subagent spawned"
+      ]
+    },
+    "claude": {
+      "id": "claude",
+      "name": "Claude Code",
+      "score": 10,
+      "health": 80,
+      "momentum": 30,
+      "familiars": []
+    }
+  },
+  "blockers": [
+    "tests failed"
+  ],
+  "log": [
+    "Codex: tool used (+10)",
+    "Claude Code: tool used (+10)",
+    "Codex: tests passed (+220)",
+    "Claude Code: file changed (+25)",
+    "Codex: file changed (+25)",
+    "Claude Code: tool used (+10)",
+    "Codex: subagent spawned (+35)",
+    "Claude Code: tests failed (-60)",
+    "Codex: tool used (+10)",
+    "Claude Code: file changed (+25)",
+    "Codex: build passed (+260)"
+  ],
+  "deltas": [
+    {
+      "eventId": "codex-1",
+      "agent": "codex",
+      "points": 10,
+      "reason": "tool used",
+      "category": "activity"
+    },
+    {
+      "eventId": "claude-1",
+      "agent": "claude",
+      "points": 10,
+      "reason": "tool used",
+      "category": "activity"
+    },
+    {
+      "eventId": "codex-2",
+      "agent": "codex",
+      "points": 220,
+      "reason": "tests passed",
+      "category": "outcome"
+    },
+    {
+      "eventId": "claude-2",
+      "agent": "claude",
+      "points": 25,
+      "reason": "file changed",
+      "category": "activity"
+    },
+    {
+      "eventId": "codex-3",
+      "agent": "codex",
+      "points": 25,
+      "reason": "file changed",
+      "category": "activity"
+    },
+    {
+      "eventId": "claude-3",
+      "agent": "claude",
+      "points": 10,
+      "reason": "tool used",
+      "category": "activity"
+    },
+    {
+      "eventId": "codex-4",
+      "agent": "codex",
+      "points": 35,
+      "reason": "subagent spawned",
+      "category": "activity"
+    },
+    {
+      "eventId": "claude-4",
+      "agent": "claude",
+      "points": -60,
+      "reason": "tests failed",
+      "category": "penalty"
+    },
+    {
+      "eventId": "codex-5",
+      "agent": "codex",
+      "points": 10,
+      "reason": "tool used",
+      "category": "activity"
+    },
+    {
+      "eventId": "claude-5",
+      "agent": "claude",
+      "points": 25,
+      "reason": "file changed",
+      "category": "activity"
+    },
+    {
+      "eventId": "codex-6",
+      "agent": "codex",
+      "points": 260,
+      "reason": "build passed",
+      "category": "outcome"
+    }
+  ],
+  "highlights": [
+    "Codex landed a major hit: tests passed",
+    "Codex landed a major hit: build passed"
+  ],
+  "winner": "codex"
+}
