@@ -56,6 +56,13 @@ Named-game skins are out of scope for the official app, docs, package, examples,
 screenshots, and repo assets. Third-party skins can later be loaded through a
 generic skin API and are independently responsible for licensing.
 
+There is a sidecar external skin workspace at
+`/Users/ming/hackathon/bellevue-codex-2026/external-skins`. It is not part of
+the official app repo. If the core demo is stable, Task 4B can implement generic
+local directory skin loading so commands such as `--skin ../external-skins/lol-fan`
+work as local unofficial demo finishers. Do not copy those skins into this repo
+or document them as official supported skins in the README.
+
 Implementation impact:
 
 - Tasks 1-3 remain useful.
@@ -1310,6 +1317,97 @@ Expected: tests pass, replay commands render terminal output, and `src/web/demoB
 ```bash
 git add src/arena/io.ts src/arena/transcriptParser.ts src/arena/io.test.ts src/cli/main.ts fixtures src/web/demoBattle.json
 git commit -m "feat: add replay and export inputs"
+```
+
+---
+
+### Task 4B: Local External Skin Manifest Loading
+
+**Files:**
+- Modify: `src/arena/skins.ts`
+- Modify: `src/arena/skins.test.ts`
+
+- [ ] **Step 1: Add local skin manifest tests**
+
+Append tests to `src/arena/skins.test.ts` that create a temporary directory and
+write `skin.json` using Node test utilities:
+
+```ts
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+```
+
+Test behavior:
+
+- `getSkin(tempSkinDir)` reads `<dir>/skin.json`.
+- It maps `displayName` to `skin.name`.
+- It maps `labels.score`, `labels.momentum`, `labels.subagents`, `labels.eventLog`, and `labels.winner` into the internal skin labels.
+- It maps `glyphs.codex`, `glyphs.claude`, `glyphs.blocker`, `glyphs.subagent`, and `glyphs.majorHit`.
+- It maps `eventText.test_passed`.
+- Missing optional asset files do not fail loading.
+
+- [ ] **Step 2: Verify tests fail**
+
+Run:
+
+```bash
+pnpm test
+```
+
+Expected: FAIL because `getSkin(path)` currently falls back to built-in `moba`
+instead of loading the manifest.
+
+- [ ] **Step 3: Implement manifest loading**
+
+Update `src/arena/skins.ts`:
+
+- Import `existsSync` and `readFileSync` from `node:fs`.
+- Import `join` from `node:path`.
+- If a path-like skin points to a directory with `skin.json`, parse it.
+- Validate `schemaVersion === 0`, string `id`, string `displayName`, object
+  `labels`, object `glyphs`, and object `eventText`.
+- Return an `ArenaSkin` using manifest presentation fields only.
+- Ignore missing optional `assets` paths.
+- If the path is missing or invalid, warn and fall back to `moba`.
+
+Mapping from manifest to internal labels:
+
+- `labels.score` -> `score`
+- `labels.momentum` -> `momentum`
+- `labels.blockers` -> `blocker`
+- `labels.subagents` -> `assist`
+- `labels.eventLog` -> `feed`
+- `labels.winner` -> `finalResult`
+
+Mapping from manifest glyphs:
+
+- `glyphs.codex` -> `codex`
+- `glyphs.claude` -> `claude`
+- `glyphs.blocker` -> `blocker`
+- `glyphs.subagent` -> `assist`
+- `glyphs.majorHit` -> `score`
+
+- [ ] **Step 4: Verify sidecar skins load**
+
+Run:
+
+```bash
+pnpm test
+pnpm arena demo --skin ../external-skins/lol-fan
+pnpm arena demo --skin ../external-skins/runescape-fan
+pnpm lint
+pnpm build
+```
+
+Expected: all pass. The two sidecar skins change labels/glyphs but do not affect
+scores, fairness labels, normalized event semantics, or parser behavior.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/arena/skins.ts src/arena/skins.test.ts
+git commit -m "feat: load local skin manifests"
 ```
 
 ---

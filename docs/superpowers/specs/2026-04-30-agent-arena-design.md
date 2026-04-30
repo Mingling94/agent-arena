@@ -176,6 +176,12 @@ fall back to the official `moba` skin so the hackathon demo remains reliable.
 This fallback must be original and generic; it is not a branded replacement or
 bundled clone of any named game.
 
+If time allows, the MVP can load a local directory containing `skin.json` as a
+presentation-only external skin. This supports local sidecar demo assets without
+shipping them as official product assets. Missing optional asset files should not
+break rendering; the terminal renderer should fall back to manifest labels,
+colors, and glyphs.
+
 ## Built-In Skins
 
 ### `moba` Skin
@@ -414,6 +420,10 @@ API and are independently responsible for licensing.
 Do not include League of Legends, RuneScape, Riot, or Jagex branding in official
 commands, filenames, packages, bundled examples, screenshots, or docs except
 possibly in a short contributor note that branded skins do not ship in core.
+
+The pitch may mention "custom user-made skins loaded through the skin API" as a
+fun finisher, but the official README should not list branded local skins as
+supported built-ins.
 
 ## Benchmark And Market Notes
 
