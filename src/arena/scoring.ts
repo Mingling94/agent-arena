@@ -22,11 +22,11 @@ const JUDGE_POINTS = {
 } as const
 
 export function scoreEvent(event: BattleEvent): ScoreDelta {
-  if (event.type === 'judge_verdict' && event.verdict) {
+  if (event.type === 'judge_verdict') {
     return {
       eventId: event.id,
       agent: event.agent,
-      points: event.points ?? JUDGE_POINTS[event.verdict],
+      points: event.points ?? (event.verdict ? JUDGE_POINTS[event.verdict] : 0),
       reason: `Custom judge: ${event.label}`,
       category: 'judge',
     }

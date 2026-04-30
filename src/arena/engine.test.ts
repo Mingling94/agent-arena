@@ -37,6 +37,25 @@ describe('runBattle', () => {
     expect(result.deltas.at(-1)?.category).toBe('judge')
   })
 
+  it('classifies explicit judge points without a verdict as judge scoring', () => {
+    const result = runBattle(
+      [
+        {
+          id: 'j2',
+          type: 'judge_verdict',
+          agent: 'claude',
+          at: 1,
+          label: 'manual rubric bonus',
+          points: 75,
+        },
+      ],
+      'Matched Race',
+    )
+
+    expect(result.deltas.at(-1)?.category).toBe('judge')
+    expect(result.agents.claude.score).toBe(75)
+  })
+
   it('penalizes regressions and repeated failures', () => {
     const result = runBattle(
       [
