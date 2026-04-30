@@ -316,6 +316,41 @@
   font-weight: 800;
 }
 
+.codex-workflow {
+  border-color: rgba(52, 170, 137, 0.42);
+  background:
+    linear-gradient(135deg, rgba(52, 170, 137, 0.12), transparent 44%),
+    var(--surface);
+}
+
+.workflow-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.workflow-list li {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--text-strong);
+}
+
+.arena-footer {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--accent-warm);
+  font-weight: 800;
+  text-align: center;
+}
+
 @media (max-width: 820px) {
   .arena-shell {
     width: min(100% - 24px, 680px);
@@ -324,7 +359,8 @@
 
   .hero-panel,
   .scoreboard,
-  .battle-grid {
+  .battle-grid,
+  .workflow-list {
     grid-template-columns: 1fr;
   }
 

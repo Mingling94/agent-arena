@@ -17,17 +17,16 @@ pnpm arena demo --skin moba
 pnpm arena demo --skin oldschool-mmo
 ```
 
-If local external skins work:
+If a local external skin is available:
 
 ```bash
-pnpm arena demo --skin ../external-skins/lol-fan
-pnpm arena demo --skin ../external-skins/runescape-fan
+pnpm arena demo --skin ../external-skins/<local-skin>
 ```
 
 Scorecard shot:
 
 ```bash
-pnpm arena scorecard --skin ../external-skins/lol-fan
+pnpm arena scorecard --skin ../external-skins/<local-skin>
 ```
 
 ## Shot Order

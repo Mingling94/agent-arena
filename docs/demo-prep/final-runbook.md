@@ -29,21 +29,21 @@ Say:
 
 Same replay. Same score. Different skin.
 
-## Fan Skin Finisher
+## Local External Skin Finisher
 
 ```bash
-pnpm arena demo --skin ../external-skins/lol-fan
-pnpm arena demo --skin ../external-skins/runescape-fan
+pnpm arena demo --skin ../external-skins/<local-skin>
 ```
 
 Say:
 
-These are local external skins. They are not official bundled assets.
+This is a local external skin loaded through the skin API. It is not an
+official bundled asset.
 
 ## Scorecard
 
 ```bash
-pnpm arena scorecard --skin ../external-skins/lol-fan
+pnpm arena scorecard --skin ../external-skins/<local-skin>
 ```
 
 Point out:

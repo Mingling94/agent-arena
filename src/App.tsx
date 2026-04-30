@@ -179,7 +179,23 @@ function App() {
             ))}
           </ol>
         </article>
+
+        <article className="panel panel--wide codex-workflow">
+          <div className="panel__header">
+            <p className="eyebrow">Built and reviewed in Codex</p>
+            <h2>Codex Workflow</h2>
+          </div>
+          <ul className="workflow-list">
+            <li>Parallel Codex sessions: implementation + research/demo prep</li>
+            <li>Worktree-based implementation</li>
+            <li>Terminal verification: tests, build, demo commands</li>
+            <li>In-app browser replay preview</li>
+            <li>Agent Arena visualizes Codex vs Claude progress</li>
+          </ul>
+        </article>
       </section>
+
+      <footer className="arena-footer">Built and reviewed in Codex</footer>
     </main>
   )
 }

@@ -4,7 +4,7 @@ Local-only assets for external demo skins.
 
 Do not ship these in the official app package.
 
-## MOBA Fan Skin
+## Local Genre Skin A
 
 - arena background
 - Codex avatar
@@ -15,7 +15,7 @@ Do not ship these in the official app package.
 - defeat/penalty icon
 - scoreboard frame
 
-## Old-School MMO Fan Skin
+## Local Genre Skin B
 
 - quest background
 - Codex avatar

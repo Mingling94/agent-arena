@@ -18,8 +18,7 @@ pnpm arena demo --skin oldschool-mmo
 Optional finisher:
 
 ```bash
-pnpm arena demo --skin ../external-skins/lol-fan
-pnpm arena demo --skin ../external-skins/runescape-fan
+pnpm arena demo --skin ../external-skins/<local-skin>
 ```
 
 ## Say

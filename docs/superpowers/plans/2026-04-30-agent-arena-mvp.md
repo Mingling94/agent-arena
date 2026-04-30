@@ -29,7 +29,7 @@
 - `fixtures/codex-sample.log` and `fixtures/claude-sample.log`: small parser fixtures.
 - `docs/demo-script.md`: 2-minute pre-recorded demo script.
 - `README.md`: update with CLI commands, judging framing, setup, and demo instructions.
-- `package.json`: add CLI bin, scripts, and test/dev dependencies.
+- `package.json`: add CLI scripts and test/dev dependencies.
 
 ## Pivot Update: Skin Boundary
 
@@ -56,12 +56,10 @@ Named-game skins are out of scope for the official app, docs, package, examples,
 screenshots, and repo assets. Third-party skins can later be loaded through a
 generic skin API and are independently responsible for licensing.
 
-There is a sidecar external skin workspace at
-`/Users/ming/hackathon/bellevue-codex-2026/external-skins`. It is not part of
-the official app repo. If the core demo is stable, Task 4B can implement generic
-local directory skin loading so commands such as `--skin ../external-skins/lol-fan`
-work as local unofficial demo finishers. Do not copy those skins into this repo
-or document them as official supported skins in the README.
+Local external skin workspaces are not part of the official app repo. If the
+core demo is stable, Task 4B can implement generic local directory skin loading
+for commands such as `--skin ../external-skins/<local-skin>`. Do not copy those
+skins into this repo or document them as official supported skins in the README.
 
 Implementation impact:
 
@@ -94,9 +92,6 @@ Update `package.json` scripts and dev dependencies:
     "preview": "vite preview",
     "test": "vitest run",
     "arena": "tsx src/cli/main.ts"
-  },
-  "bin": {
-    "agent-arena": "./dist-cli/main.js"
   },
   "devDependencies": {
     "tsx": "^4.20.6",
@@ -590,293 +585,6 @@ Expected: all pass.
 ```bash
 git add src/arena/demoEvents.ts src/cli/renderTerminal.ts src/cli/formatScorecard.ts src/cli/main.ts
 git commit -m "feat: add terminal arena demo"
-```
-
----
-
-### Task 3B: Mode And Theme Boundary
-
-**Files:**
-- Create: `src/arena/modes.ts`
-- Create: `src/arena/themes.ts`
-- Create: `src/arena/modes.test.ts`
-- Modify: `src/cli/main.ts`
-- Modify: `src/cli/renderTerminal.ts`
-- Modify: `src/cli/formatScorecard.ts`
-
-- [ ] **Step 1: Write mode/theme tests**
-
-Create `src/arena/modes.test.ts`:
-
-```ts
-import { describe, expect, it } from 'vitest'
-import { getMode } from './modes'
-import { getTheme } from './themes'
-
-describe('modes', () => {
-  it('uses moba as the default mode', () => {
-    expect(getMode().id).toBe('moba')
-  })
-
-  it('uses different vocabulary for moba and mmo', () => {
-    expect(getMode('moba').labels.finalObjective).toBe('final objective')
-    expect(getMode('mmo').labels.finalObjective).toBe('quest completion')
-  })
-})
-
-describe('themes', () => {
-  it('resolves bundled legally clean themes', () => {
-    expect(getTheme('terminal').id).toBe('terminal')
-    expect(getTheme('moba-default').id).toBe('moba-default')
-    expect(getTheme('mmo-default').id).toBe('mmo-default')
-  })
-
-  it('falls back to moba-default when a local third-party moba theme is unavailable', () => {
-    const theme = getTheme('./themes/missing-theme', 'moba')
-
-    expect(theme.id).toBe('moba-default')
-    expect(theme.warning).toContain('Falling back to moba-default')
-  })
-})
-```
-
-- [ ] **Step 2: Verify tests fail**
-
-Run:
-
-```bash
-pnpm test
-```
-
-Expected: FAIL because `modes.ts` and `themes.ts` do not exist.
-
-- [ ] **Step 3: Implement built-in modes**
-
-Create `src/arena/modes.ts`:
-
-```ts
-import type { BattleEventType } from './types'
-
-export type GameModeId = 'moba' | 'mmo'
-
-export interface GameMode {
-  id: GameModeId
-  name: string
-  labels: {
-    objective: string
-    blocker: string
-    finalObjective: string
-    assist: string
-    momentum: string
-    score: string
-    feed: string
-  }
-  eventVocabulary: Partial<Record<BattleEventType, string>>
-}
-
-const MODES: Record<GameModeId, GameMode> = {
-  moba: {
-    id: 'moba',
-    name: 'MOBA Mode',
-    labels: {
-      objective: 'objective',
-      blocker: 'enemy objective',
-      finalObjective: 'final objective',
-      assist: 'assist',
-      momentum: 'tempo',
-      score: 'objective score',
-      feed: 'observer feed',
-    },
-    eventVocabulary: {
-      task_completed: 'final objective destroyed',
-      test_passed: 'major objective secured',
-      build_passed: 'base gate cleared',
-      test_failed: 'enemy objective appeared',
-      blocker_detected: 'blocker contested',
-      subagent_spawned: 'assist joined',
-      tool_used: 'vision gained',
-      file_changed: 'lane pressure applied',
-      fix_applied: 'objective captured',
-      judge_verdict: 'official ruling',
-    },
-  },
-  mmo: {
-    id: 'mmo',
-    name: 'MMO Mode',
-    labels: {
-      objective: 'quest',
-      blocker: 'encounter',
-      finalObjective: 'quest completion',
-      assist: 'party member',
-      momentum: 'reputation',
-      score: 'XP',
-      feed: 'adventure log',
-    },
-    eventVocabulary: {
-      task_completed: 'quest completed',
-      test_passed: 'encounter cleared',
-      build_passed: 'raid gate opened',
-      test_failed: 'boss enraged',
-      blocker_detected: 'dungeon hazard found',
-      subagent_spawned: 'party member joined',
-      tool_used: 'exploration',
-      file_changed: 'gear crafted',
-      fix_applied: 'boss phase cleared',
-      judge_verdict: 'guild verdict',
-    },
-  },
-}
-
-export function getMode(mode: string = 'moba'): GameMode {
-  if (mode === 'moba' || mode === 'mmo') return MODES[mode]
-  throw new Error(`Unknown mode: ${mode}`)
-}
-
-export function describeEventForMode(type: BattleEventType, mode: GameMode): string {
-  return mode.eventVocabulary[type] ?? type.replaceAll('_', ' ')
-}
-```
-
-- [ ] **Step 4: Implement bundled themes**
-
-Create `src/arena/themes.ts`:
-
-```ts
-export type ThemeId = 'terminal' | 'moba-default' | 'mmo-default'
-
-export interface ArenaTheme {
-  id: ThemeId | string
-  name: string
-  warning?: string
-  colors: {
-    codex: string
-    claude: string
-    accent: string
-    danger: string
-  }
-  glyphs: {
-    codex: string
-    claude: string
-    blocker: string
-    assist: string
-    objective: string
-  }
-  frame: {
-    horizontal: string
-    vertical: string
-    corner: string
-  }
-}
-
-const THEMES: Record<ThemeId, ArenaTheme> = {
-  terminal: {
-    id: 'terminal',
-    name: 'Terminal',
-    colors: { codex: 'cyan', claude: 'magenta', accent: 'white', danger: 'red' },
-    glyphs: { codex: 'C', claude: 'K', blocker: 'X', assist: '+', objective: '*' },
-    frame: { horizontal: '=', vertical: '|', corner: '+' },
-  },
-  'moba-default': {
-    id: 'moba-default',
-    name: 'MOBA Default',
-    colors: { codex: 'blue', claude: 'red', accent: 'yellow', danger: 'red' },
-    glyphs: { codex: 'C', claude: 'K', blocker: 'O', assist: 'A', objective: '#' },
-    frame: { horizontal: '=', vertical: '|', corner: '+' },
-  },
-  'mmo-default': {
-    id: 'mmo-default',
-    name: 'MMO Default',
-    colors: { codex: 'green', claude: 'purple', accent: 'gold', danger: 'red' },
-    glyphs: { codex: 'C', claude: 'K', blocker: 'B', assist: 'P', objective: 'Q' },
-    frame: { horizontal: '-', vertical: '|', corner: '+' },
-  },
-}
-
-export function getTheme(theme: string = 'moba-default', mode: string = 'moba'): ArenaTheme {
-  if (theme === 'terminal' || theme === 'moba-default' || theme === 'mmo-default') {
-    return THEMES[theme]
-  }
-
-  if (theme.startsWith('.') || theme.startsWith('/')) {
-    if (mode === 'moba') {
-      return {
-        ...THEMES['moba-default'],
-        warning: `Could not load ${theme}. Falling back to moba-default.`,
-      }
-    }
-
-    return {
-      ...THEMES['mmo-default'],
-      warning: `Could not load ${theme}. Falling back to mmo-default.`,
-    }
-  }
-
-  throw new Error(`Unknown theme: ${theme}`)
-}
-```
-
-- [ ] **Step 5: Add CLI mode/theme parsing**
-
-Update `src/cli/main.ts` so:
-
-- `pnpm arena demo` still works and defaults to `moba`.
-- `pnpm arena demo --mode moba` works.
-- `pnpm arena demo --mode mmo` works.
-- `pnpm arena scorecard --mode moba` works.
-- `--theme terminal`, `--theme moba-default`, `--theme mmo-default`, and local
-  path-looking themes are accepted.
-- unavailable local path-looking themes warn and fall back to the built-in theme
-  for the selected mode, especially `moba-default` for `moba`.
-- Unknown modes/themes exit nonzero with a useful error.
-
-Use a small parser function:
-
-```ts
-function readOption(args: string[], name: string, fallback: string): string {
-  const index = args.indexOf(name)
-  return index >= 0 ? (args[index + 1] ?? fallback) : fallback
-}
-```
-
-- [ ] **Step 6: Pass mode/theme into renderers**
-
-Update `renderTerminal` and `formatScorecard` signatures:
-
-```ts
-renderTerminal(state, mode, theme)
-formatScorecard(state, mode)
-```
-
-The terminal output must include:
-
-- selected mode name
-- selected theme name
-- mode vocabulary for the center blocker/objective label
-- `moba` wording such as `objective score`, `tempo`, `assist`, and `observer feed`
-- `mmo` wording such as `XP`, `reputation`, `party member`, and `adventure log`
-
-- [ ] **Step 7: Verify mode commands**
-
-Run:
-
-```bash
-pnpm test
-pnpm arena demo --mode moba
-pnpm arena demo --mode mmo
-pnpm arena scorecard --mode moba
-pnpm arena demo --mode moba --theme terminal
-pnpm lint
-pnpm build
-```
-
-Expected: all pass. Output vocabulary changes between `moba` and `mmo`. No
-named-game branding appears.
-
-- [ ] **Step 8: Commit**
-
-```bash
-git add src/arena/modes.ts src/arena/themes.ts src/arena/modes.test.ts src/cli/main.ts src/cli/renderTerminal.ts src/cli/formatScorecard.ts
-git commit -m "feat: add mode and theme boundary"
 ```
 
 ---
@@ -1394,8 +1102,7 @@ Run:
 
 ```bash
 pnpm test
-pnpm arena demo --skin ../external-skins/lol-fan
-pnpm arena demo --skin ../external-skins/runescape-fan
+pnpm arena demo --skin ../external-skins/<local-skin>
 pnpm lint
 pnpm build
 ```

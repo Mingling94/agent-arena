@@ -28,9 +28,23 @@ pnpm arena replay fixtures/codex-sample.log fixtures/claude-sample.log --skin mo
 Export a skin-neutral battle state and open the lightweight web replay viewer:
 
 ```bash
-pnpm arena export fixtures/codex-sample.log fixtures/claude-sample.log --out src/web/demoBattle.json --skin moba
+pnpm export-demo
 pnpm dev
 ```
+
+## Codex Desktop Demo
+
+1. Open this repo in the Codex desktop app.
+2. Run `pnpm arena demo --skin moba`.
+3. Run `pnpm arena demo --skin oldschool-mmo`.
+4. Run `pnpm export-demo`.
+5. Run `pnpm dev --host 127.0.0.1`.
+6. Open `http://127.0.0.1:5173` in the Codex app in-app browser.
+7. Show the replay, scorecard, and Codex Workflow panel.
+
+Codex built this with parallel agent threads and worktrees. Agent Arena then
+turns coding-agent sessions into a replay and scorecard, previewed directly
+inside the Codex app browser.
 
 Agent Arena ships with original genre-inspired skins. Named-game skins are not
 official product assets. Third-party skins may be loaded through a generic skin
