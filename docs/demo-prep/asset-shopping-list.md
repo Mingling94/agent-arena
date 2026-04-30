@@ -29,7 +29,7 @@ Do not ship these in the official app package.
 ## Asset Rules
 
 - Keep assets in `../external-skins/*/assets/`.
-- Do not commit branded assets to official repo.
+- Do not commit unlicensed or named-game assets to the official repo.
 - Prefer static PNGs.
 - Use missing-asset fallback in renderer.
 - Avoid music unless licensing is clear.

@@ -72,7 +72,7 @@ The MVP uses deterministic events for reliability.
 Real transcript adapters can normalize Codex, Claude Code, and other agent logs
 into the same event stream.
 
-## Are branded skins official?
+## Are custom external skins official?
 
 No.
 

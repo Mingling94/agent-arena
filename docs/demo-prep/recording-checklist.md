@@ -36,7 +36,7 @@ pnpm arena scorecard --skin ../external-skins/<local-skin>
 3. Pause on turning point: blocker, helper, test pass.
 4. Pause on final scorecard.
 5. Run `--skin oldschool-mmo`.
-6. Optional branded local skin finisher.
+6. Optional local external skin finisher.
 7. End on final verdict.
 
 ## Fallback
@@ -57,7 +57,7 @@ Cut transcript parsing.
 
 Cut web spectator.
 
-Cut external branded skins.
+Cut external custom skins.
 
 Keep terminal replay and scorecard.
 

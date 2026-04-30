@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="520" viewBox="0 0 920 520" role="img" aria-labelledby="title desc">
+  <title id="title">Codex Workflow</title>
+  <desc id="desc">A compact Agent Arena workflow card for demo use.</desc>
+  <rect width="920" height="520" rx="24" fill="#0a0f1c"/>
+  <rect x="28" y="28" width="864" height="464" rx="20" fill="#111827" stroke="#334155" stroke-width="2"/>
+  <text x="64" y="86" fill="#f8fafc" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="42" font-weight="800">Codex Workflow</text>
+  <text x="64" y="126" fill="#93a4b8" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="20">Agent Arena was built and reviewed as a multi-agent Codex workflow.</text>
+  <g font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="24" fill="#e5edf6">
+    <circle cx="78" cy="184" r="8" fill="#2dd4bf"/>
+    <text x="104" y="192">Parallel Codex sessions: implementation + research/demo prep</text>
+    <circle cx="78" cy="244" r="8" fill="#2dd4bf"/>
+    <text x="104" y="252">Worktree-based implementation</text>
+    <circle cx="78" cy="304" r="8" fill="#2dd4bf"/>
+    <text x="104" y="312">Terminal verification: tests, build, demo commands</text>
+    <circle cx="78" cy="364" r="8" fill="#2dd4bf"/>
+    <text x="104" y="372">Replay previewed in the Codex app browser</text>
+    <circle cx="78" cy="424" r="8" fill="#2dd4bf"/>
+    <text x="104" y="432">Agent Arena visualizes Codex vs Claude progress</text>
+  </g>
+</svg>
