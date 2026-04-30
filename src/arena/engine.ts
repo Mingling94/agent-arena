@@ -1,6 +1,8 @@
 import { scoreEvent } from './scoring'
 import type { AgentId, BattleEvent, BattleState, RaceLabel } from './types'
 
+export type ReplayFinalizationMode = 'all-events-visible' | 'final-event-visible' | 'never'
+
 const AGENT_NAMES: Record<AgentId, string> = {
   codex: 'Codex',
   claude: 'Claude Code',
@@ -23,14 +25,28 @@ export function createInitialBattle(label: RaceLabel): BattleState {
 }
 
 export function runBattle(events: BattleEvent[], label: RaceLabel): BattleState {
-  const state = createInitialBattle(label)
-  const sortedEvents = [...events].sort((a, b) => a.at - b.at)
+  return buildBattleReplayState(events, label, events.length)
+}
 
-  for (const event of sortedEvents) {
+export function buildBattleReplayState(
+  events: BattleEvent[],
+  label: RaceLabel,
+  visibleEventCount: number,
+  options: { finalizeWhen?: ReplayFinalizationMode } = {},
+): BattleState {
+  const state = createInitialBattle(label)
+  const sortedEvents = sortEvents(events)
+  const visibleEvents = sortedEvents.slice(0, Math.max(0, visibleEventCount))
+  const finalizeWhen = options.finalizeWhen ?? 'all-events-visible'
+
+  for (const event of visibleEvents) {
     applyBattleEvent(state, event)
   }
 
-  finalizeBattle(state)
+  if (shouldFinalizeReplay(visibleEvents, sortedEvents.length, finalizeWhen)) {
+    finalizeBattle(state)
+  }
+
   return state
 }
 
@@ -78,4 +94,21 @@ export function pickWinner(state: BattleState): BattleState['winner'] {
   const claude = state.agents.claude.score
   if (codex === claude) return 'tie'
   return codex > claude ? 'codex' : 'claude'
+}
+
+function sortEvents(events: BattleEvent[]): BattleEvent[] {
+  return [...events].sort((a, b) => a.at - b.at)
+}
+
+function shouldFinalizeReplay(
+  visibleEvents: BattleEvent[],
+  totalEventCount: number,
+  finalizeWhen: ReplayFinalizationMode,
+): boolean {
+  if (finalizeWhen === 'never') return false
+  if (finalizeWhen === 'final-event-visible') {
+    return visibleEvents.some((event) => event.type === 'task_completed' || event.type === 'judge_verdict')
+  }
+
+  return visibleEvents.length >= totalEventCount
 }

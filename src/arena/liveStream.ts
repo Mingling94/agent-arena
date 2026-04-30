@@ -1,6 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname } from 'node:path'
-import { applyBattleEvent, createInitialBattle, finalizeBattle } from './engine'
+import { buildBattleReplayState, createInitialBattle } from './engine'
 import { parseEventsJsonl } from './io'
 import type { AgentId, BattleEvent, BattleEventType, BattleState, JudgeVerdict } from './types'
 
@@ -46,16 +46,9 @@ export function readLiveBattleSnapshot(eventsPath = DEFAULT_LIVE_EVENTS_PATH): L
 }
 
 export function buildLiveBattleState(events: BattleEvent[]): BattleState {
-  const state = createInitialBattle('Matched Race')
-  for (const event of events) applyBattleEvent(state, event)
-
-  if (hasFinalEvent(events)) {
-    finalizeBattle(state)
-  } else {
-    state.winner = null
-  }
-
-  return state
+  return buildBattleReplayState(events, 'Matched Race', events.length, {
+    finalizeWhen: 'final-event-visible',
+  })
 }
 
 export function appendLiveEvent(input: LiveEventInput, eventsPath = DEFAULT_LIVE_EVENTS_PATH): BattleEvent {
@@ -78,8 +71,4 @@ export function appendLiveEvent(input: LiveEventInput, eventsPath = DEFAULT_LIVE
 
   appendFileSync(eventsPath, `${JSON.stringify(event)}\n`, 'utf8')
   return event
-}
-
-function hasFinalEvent(events: BattleEvent[]): boolean {
-  return events.some((event) => event.type === 'task_completed' || event.type === 'judge_verdict')
 }

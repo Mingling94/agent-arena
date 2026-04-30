@@ -5,6 +5,8 @@ import type { SpectatorModel, SpectatorRuntimeMode, SpectatorSide, SpectatorView
 import type { AgentId, AgentState, BattleState, BattleEvent } from '../arena/types'
 
 const FRAME_WIDTH = 80
+const SOLO_SCENE_WIDTH = 66
+const SOLO_DASH_WIDTH = 50
 const LANE_WIDTH = 27
 const CENTER_WIDTH = 20
 const SCENE_COLUMN_WIDTH = 24
@@ -17,6 +19,7 @@ export interface TerminalRenderOptions {
   agent?: AgentId
   runtimeMode?: SpectatorRuntimeMode
   soloAgent?: AgentId
+  maxWidth?: number
 }
 
 export function renderTerminal(
@@ -39,7 +42,7 @@ export function renderTerminal(
 
   const parts = { blockers, log, highlights, winner, matchLabel: state.label }
 
-  if (view === 'scene') return renderSceneView(model, skin, parts, options.soloAgent)
+  if (view === 'scene') return renderSceneView(model, skin, parts, options.soloAgent, options.maxWidth)
   if (view === 'focus') return renderFocusView(model, skin, agent, parts)
   if (view === 'feed') return renderFeedView(model, skin, parts)
 
@@ -73,7 +76,10 @@ function renderSceneView(
   skin: ArenaSkin,
   parts: { blockers: string; log: string; highlights: string; winner: string; matchLabel: string },
   soloAgent?: AgentId,
+  maxWidth?: number,
 ): string {
+  if (soloAgent) return renderSoloSceneView(model, skin, parts, soloAgent, maxWidth)
+
   return [
     renderCinematicScene(model, skin, soloAgent, parts.blockers),
     '',
@@ -84,6 +90,60 @@ function renderSceneView(
     '',
     'DECISIVE MOMENTS',
     parts.highlights || '  No highlights yet',
+  ].join('\n')
+}
+
+function renderSoloSceneView(
+  model: SpectatorModel,
+  skin: ArenaSkin,
+  parts: { blockers: string; log: string; highlights: string; winner: string; matchLabel: string },
+  soloAgent: AgentId,
+  maxWidth?: number,
+): string {
+  if ((maxWidth ?? Number.POSITIVE_INFINITY) < SOLO_SCENE_WIDTH + SOLO_DASH_WIDTH + 2) {
+    return renderNarrowSoloSceneView(model, skin, parts, soloAgent, Math.max(42, Math.min(maxWidth ?? SOLO_SCENE_WIDTH, SOLO_SCENE_WIDTH)))
+  }
+
+  return combineColumns(
+    renderSoloAnimationPanel(model, skin, parts, soloAgent),
+    renderSoloDashboardPanel(model, skin, parts, soloAgent),
+  )
+}
+
+function renderNarrowSoloSceneView(
+  model: SpectatorModel,
+  skin: ArenaSkin,
+  parts: { blockers: string; log: string; highlights: string },
+  soloAgent: AgentId,
+  width: number,
+): string {
+  const solo = model.sides[soloAgent]
+  const objective = firstBlockerLabel(parts.blockers)
+  const feed = compactBlock(parts.log, 3)
+  const highlights = compactBlock(parts.highlights, 2)
+
+  return [
+    boxTop('CODEX LIVE SESSION', width),
+    boxLine(`${solo.agent.name} tracking active work`, width),
+    boxLine(`score ${solo.meters.score} | hp ${Math.round(solo.meters.health)} | momentum ${solo.meters.momentum}`, width),
+    boxRule(width),
+    boxLine(`Current ${titleCase(skin.labels.blocker)}`, width),
+    boxLine(`╭──── ${clip(objective, Math.max(12, width - 18))} ────╮`, width),
+    boxLine('│      CHECKPOINT CORE      │', width),
+    boxLine('╰───────────────────────────╯', width),
+    boxLine('', width),
+    boxLine('             O/', width),
+    boxLine('            /|   >>> tests/build', width),
+    boxLine('            / \\', width),
+    boxLine(`HP ${bar(solo.meters.health)}  Momentum ${bar(solo.meters.momentum)}`, width),
+    boxLine(`${skin.glyphs.assist} ${solo.units[0] ?? 'Solo run'}`, width),
+    boxRule(width),
+    boxLine('EVENT FEED', width),
+    ...feed.map((line) => boxLine(line, width)),
+    boxRule(width),
+    boxLine('CHECKS / MILESTONES', width),
+    ...highlights.map((line) => boxLine(line, width)),
+    boxBottom(width),
   ].join('\n')
 }
 
@@ -115,23 +175,7 @@ function renderCinematicScene(
   const claudePush = claude.meters.score > codex.meters.score ? '<<< push' : 'holding'
 
   if (solo) {
-    return [
-      '╭──────────────────────────── CODEX LIVE SESSION ─────────────────────────────╮',
-      cinemaLine(`${solo.agent.name} tracking active work`),
-      cinemaLine(''),
-      cinemaLine(`◆ Current ${titleCase(skin.labels.blocker)} ◆`),
-      cinemaLine(`╭──────── ${clip(objective, 28)} ────────╮`),
-      cinemaLine('│            CHECKPOINT CORE             │'),
-      cinemaLine('╰────────────────────────────────────────╯'),
-      cinemaLine(''),
-      cinemaColumns('workspace', 'current objective', 'verification'),
-      cinemaColumns('  O/', '          >>>', 'tests/build'),
-      cinemaColumns(' /| ', '      center pressure      ', model.objective.status),
-      cinemaColumns(' / \\', model.runtime.label, `${solo.meters.score} pts`),
-      cinemaColumns(`HP ${bar(solo.meters.health)}`, `momentum ${bar(solo.meters.momentum)}`, `${skin.glyphs.assist} ${solo.units[0] ?? 'Solo run'}`),
-      cinemaLine(''),
-      '╰──────────────────────────────────────────────────────────────────────────────╯',
-    ].join('\n')
+    return renderSoloAnimationPanel(model, skin, { blockers: soloBlockers ?? 'No active blockers' }, solo.agent.id).join('\n')
   }
 
   return [
@@ -153,6 +197,63 @@ function renderCinematicScene(
     cinemaLine(''),
     '╰──────────────────────────────────────────────────────────────────────────────╯',
   ].join('\n')
+}
+
+function renderSoloAnimationPanel(
+  model: SpectatorModel,
+  skin: ArenaSkin,
+  parts: { blockers: string },
+  soloAgent: AgentId,
+): string[] {
+  const solo = model.sides[soloAgent]
+  const objective = firstBlockerLabel(parts.blockers)
+
+  return [
+    boxTop('CODEX LIVE SESSION', SOLO_SCENE_WIDTH),
+    boxLine(`${solo.agent.name} tracking active work`, SOLO_SCENE_WIDTH),
+    boxLine('', SOLO_SCENE_WIDTH),
+    boxLine(`Current ${titleCase(skin.labels.blocker)}`, SOLO_SCENE_WIDTH),
+    boxLine(`╭──── ${clip(objective, 32)} ────╮`, SOLO_SCENE_WIDTH),
+    boxLine('│        CHECKPOINT CORE        │', SOLO_SCENE_WIDTH),
+    boxLine('╰───────────────────────────────╯', SOLO_SCENE_WIDTH),
+    boxLine('', SOLO_SCENE_WIDTH),
+    boxLine('             O/', SOLO_SCENE_WIDTH),
+    boxLine('            /|        >>> tests/build', SOLO_SCENE_WIDTH),
+    boxLine('            / \\', SOLO_SCENE_WIDTH),
+    boxLine('', SOLO_SCENE_WIDTH),
+    boxLine(`HP ${bar(solo.meters.health)}   Momentum ${bar(solo.meters.momentum)}`, SOLO_SCENE_WIDTH),
+    boxLine(`${skin.glyphs.assist} ${solo.units[0] ?? 'Solo run'}`, SOLO_SCENE_WIDTH),
+    boxLine(model.objective.status === 'secured' ? 'Objective secured' : 'Objective contested', SOLO_SCENE_WIDTH),
+    boxBottom(SOLO_SCENE_WIDTH),
+  ]
+}
+
+function renderSoloDashboardPanel(
+  model: SpectatorModel,
+  skin: ArenaSkin,
+  parts: { blockers: string; log: string; highlights: string },
+  soloAgent: AgentId,
+): string[] {
+  const solo = model.sides[soloAgent]
+  const feed = compactBlock(parts.log, 3)
+  const highlights = compactBlock(parts.highlights, 2)
+
+  return [
+    boxTop('SESSION HUD', SOLO_DASH_WIDTH),
+    boxLine(`${solo.agent.name} | ${model.runtime.label}`, SOLO_DASH_WIDTH),
+    boxRule(SOLO_DASH_WIDTH),
+    boxLine('METRICS', SOLO_DASH_WIDTH),
+    boxLine(`score ${solo.meters.score} pts | health ${Math.round(solo.meters.health)}`, SOLO_DASH_WIDTH),
+    boxLine(`momentum ${solo.meters.momentum} | objective ${model.objective.status}`, SOLO_DASH_WIDTH),
+    boxLine(`${titleCase(skin.labels.blocker)}: ${firstBlockerLabel(parts.blockers)}`, SOLO_DASH_WIDTH),
+    boxRule(SOLO_DASH_WIDTH),
+    boxLine('EVENT FEED', SOLO_DASH_WIDTH),
+    ...feed.map((line) => boxLine(line, SOLO_DASH_WIDTH)),
+    boxRule(SOLO_DASH_WIDTH),
+    boxLine('CHECKS / MILESTONES', SOLO_DASH_WIDTH),
+    ...highlights.map((line) => boxLine(line, SOLO_DASH_WIDTH)),
+    boxBottom(SOLO_DASH_WIDTH),
+  ]
 }
 
 function renderStatusDock(
@@ -198,6 +299,48 @@ function cinemaColumns(left: string, center: string, right: string): string {
 
 function dockLine(value: string): string {
   return `│ ${fit(value, FRAME_WIDTH - 4)} │`
+}
+
+function combineColumns(left: string[], right: string[]): string {
+  const height = Math.max(left.length, right.length)
+  const leftBlank = ' '.repeat(SOLO_SCENE_WIDTH)
+  const rightBlank = ' '.repeat(SOLO_DASH_WIDTH)
+  const lines: string[] = []
+
+  for (let index = 0; index < height; index += 1) {
+    lines.push(`${left[index] ?? leftBlank}  ${right[index] ?? rightBlank}`)
+  }
+
+  return lines.join('\n')
+}
+
+function boxTop(title: string, width: number): string {
+  const label = ` ${title} `
+  const left = Math.max(0, Math.floor((width - 2 - label.length) / 2))
+  const right = Math.max(0, width - 2 - label.length - left)
+  return `╭${'─'.repeat(left)}${label}${'─'.repeat(right)}╮`
+}
+
+function boxLine(value: string, width: number): string {
+  return `│ ${fit(value, width - 4)} │`
+}
+
+function boxRule(width: number): string {
+  return `├${'─'.repeat(width - 2)}┤`
+}
+
+function boxBottom(width: number): string {
+  return `╰${'─'.repeat(width - 2)}╯`
+}
+
+function compactBlock(value: string, maxLines: number): string[] {
+  const lines = value
+    .split('\n')
+    .map((line) => line.trim().replace(/^[-*]\s*/, ''))
+    .filter(Boolean)
+    .slice(-maxLines)
+
+  return lines.length > 0 ? lines : ['No events yet']
 }
 
 function renderSplitView(model: SpectatorModel, skin: ArenaSkin): string {

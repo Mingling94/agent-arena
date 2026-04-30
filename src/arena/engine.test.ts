@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyBattleEvent, createInitialBattle, finalizeBattle, runBattle } from './engine'
+import { buildBattleReplayState, runBattle } from './engine'
 import type { BattleEvent } from './types'
 
 describe('runBattle', () => {
@@ -77,10 +77,36 @@ describe('runBattle', () => {
     ]
 
     const replay = runBattle(events, 'Matched Race')
-    const live = createInitialBattle('Matched Race')
-    for (const event of events) applyBattleEvent(live, event)
-    finalizeBattle(live)
+    const live = buildBattleReplayState(events, 'Matched Race', events.length)
 
     expect(live).toEqual(replay)
+  })
+
+  it('builds partial replay state without declaring a winner early', () => {
+    const events: BattleEvent[] = [
+      { id: 'c1', type: 'tool_used', agent: 'codex', at: 1, label: 'read files' },
+      { id: 'c2', type: 'task_completed', agent: 'codex', at: 2, label: 'finished' },
+    ]
+
+    const partial = buildBattleReplayState(events, 'Matched Race', 1)
+    const final = buildBattleReplayState(events, 'Matched Race', 2)
+
+    expect(partial.events).toHaveLength(1)
+    expect(partial.winner).toBeNull()
+    expect(final.winner).toBe('codex')
+  })
+
+  it('can finalize live state as soon as a final event is visible', () => {
+    const events: BattleEvent[] = [
+      { id: 'c1', type: 'task_completed', agent: 'codex', at: 1, label: 'finished' },
+      { id: 'c2', type: 'tool_used', agent: 'claude', at: 2, label: 'late activity' },
+    ]
+
+    const live = buildBattleReplayState(events, 'Matched Race', 1, {
+      finalizeWhen: 'final-event-visible',
+    })
+
+    expect(live.events).toHaveLength(1)
+    expect(live.winner).toBe('codex')
   })
 })

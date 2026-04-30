@@ -66,6 +66,10 @@ const DEFAULT_RUN_STATS: Record<AgentId, SpectatorRunStats> = {
   },
 }
 
+function uniqueLabels(labels: string[]): string[] {
+  return [...new Set(labels)]
+}
+
 export function buildSpectatorModel(
   battle: BattleState,
   options: SpectatorModelOptions = {},
@@ -112,7 +116,7 @@ export function buildSpectatorModel(
           {
             agent,
             role: battle.winner === id ? 'winner' : 'contender',
-            units: agent.familiars.length > 0 ? agent.familiars : ['Solo run'],
+            units: agent.familiars.length > 0 ? uniqueLabels(agent.familiars) : ['Solo run'],
             runStats: options.runStats?.[id] ?? DEFAULT_RUN_STATS[id],
             meters: {
               health: agent.health,

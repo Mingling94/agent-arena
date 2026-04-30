@@ -2,12 +2,16 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { AgentId, AgentState, BattleState } from './arena/types'
 import type { SpectatorRuntimeMode } from './arena/spectatorModel'
+import { buildBattleReplayState } from './arena/engine'
+import { buildEvalModel } from './arena/evalModel'
 import { buildSpectatorModel } from './arena/spectatorModel'
 import battle from './web/demoBattle.json'
 import './App.css'
 
 const agentIds = ['codex', 'claude'] as const satisfies readonly AgentId[]
 const demoBattleState = battle as BattleState
+const demoEvents = [...demoBattleState.events].sort((a, b) => a.at - b.at)
+const replaySpeeds = [0.5, 1, 2, 4] as const
 
 interface LiveSnapshot {
   state: BattleState
@@ -54,6 +58,12 @@ const DEFAULT_WEB_SKIN: WebSkin = {
 }
 
 const CUSTOM_LOCAL_SKIN_PATH = '../external-skins/lol-fan'
+const mobaAbilities = [
+  { key: 'Q', label: 'Test' },
+  { key: 'W', label: 'Lint' },
+  { key: 'E', label: 'Build' },
+  { key: 'R', label: 'Agent' },
+]
 
 function getAgentMark(agent: AgentState) {
   return agent.id === 'claude' ? 'CC' : 'C'
@@ -61,6 +71,78 @@ function getAgentMark(agent: AgentState) {
 
 function formatSigned(points: number) {
   return points > 0 ? `+${points}` : String(points)
+}
+
+function formatStat(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
+
+function formatCombatDelta(points: number, reason: string) {
+  const shortReason = reason
+    .replace('tests passed', 'Test')
+    .replace('tests failed', 'Tests')
+    .replace('build passed', 'Build')
+    .replace('file changed', 'File')
+    .replace('tool used', 'Tool')
+    .replace('subagent spawned', 'Agent')
+
+  return `${formatSigned(points)} ${shortReason}`
+}
+
+function buildReplayBattle(eventCount: number): BattleState {
+  return buildBattleReplayState(demoEvents, demoBattleState.label, eventCount)
+}
+
+function EvalSummary({ state }: { state: BattleState }) {
+  const evalModel = buildEvalModel(state)
+  const statusClass = (value: boolean, inverted = false) => {
+    if (inverted) return value ? 'is-bad' : 'is-good'
+    return value ? 'is-good' : ''
+  }
+
+  return (
+    <article className="panel panel--wide eval-panel">
+      <div className="panel__header">
+        <p className="eyebrow">Explainable Eval</p>
+        <h2>{evalModel.trustVerdict}</h2>
+      </div>
+
+      <div className="eval-layout">
+        <div className="eval-breakdown" aria-label="Score source breakdown">
+          <div className="eval-category eval-category--header" aria-hidden="true">
+            <span>Source</span>
+            <strong>Codex</strong>
+            <strong>Claude</strong>
+          </div>
+          {evalModel.categories.map((category) => (
+            <div className={`eval-category eval-category--${category}`} key={category}>
+              <span>{category}</span>
+              <strong>{formatSigned(evalModel.totals[category].codex)}</strong>
+              <strong>{formatSigned(evalModel.totals[category].claude)}</strong>
+            </div>
+          ))}
+        </div>
+
+        <div className="rubric-grid" aria-label="Evaluation rubric">
+          {evalModel.checks.map((check) => (
+            <div className="rubric-row" key={check.label}>
+              <span>{check.label}</span>
+              <strong className={statusClass(check.codex, check.inverted)}>
+                {check.codex ? (check.inverted ? 'Hit' : 'Pass') : check.inverted ? 'Clear' : 'Wait'}
+              </strong>
+              <strong className={statusClass(check.claude, check.inverted)}>
+                {check.claude ? (check.inverted ? 'Hit' : 'Pass') : check.inverted ? 'Clear' : 'Wait'}
+              </strong>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <p className="eval-note">
+        Scores come from normalized events. Verified outcomes and custom judge events are separated from generic activity.
+      </p>
+    </article>
+  )
 }
 
 function StatMeter({
@@ -78,7 +160,7 @@ function StatMeter({
     <div className="stat-meter">
       <div className="stat-meter__label">
         <span>{label}</span>
-        <strong>{value}</strong>
+        <strong>{formatStat(value)}</strong>
       </div>
       <div className="stat-meter__track" aria-hidden="true">
         <span
@@ -177,9 +259,9 @@ function ScorecardPanel({
         <span>{skin.labels.score}</span>
         <strong>{agent.score}</strong>
         <span>{skin.labels.health ?? 'Health'}</span>
-        <strong>{agent.health}</strong>
+        <strong>{formatStat(agent.health)}</strong>
         <span>{skin.labels.momentum}</span>
-        <strong>{agent.momentum}</strong>
+        <strong>{formatStat(agent.momentum)}</strong>
       </div>
     </article>
   )
@@ -211,7 +293,13 @@ function App() {
   const [liveSnapshot, setLiveSnapshot] = useState<LiveSnapshot | null>(null)
   const [skinPath, setSkinPath] = useState(getInitialSkinPath)
   const [webSkin, setWebSkin] = useState<WebSkin>(DEFAULT_WEB_SKIN)
-  const battleState = runtimeMode === 'live-session' ? (liveSnapshot?.state ?? demoBattleState) : demoBattleState
+  const [replayEventCount, setReplayEventCount] = useState(0)
+  const [isReplayPlaying, setIsReplayPlaying] = useState(true)
+  const [replaySpeed, setReplaySpeed] = useState<(typeof replaySpeeds)[number]>(1)
+  const replayBattleState = useMemo(() => buildReplayBattle(replayEventCount), [replayEventCount])
+  const isReplayComplete = replayEventCount >= demoEvents.length
+  const isReplayActivelyPlaying = isReplayPlaying && !isReplayComplete
+  const battleState = runtimeMode === 'live-session' ? (liveSnapshot?.state ?? demoBattleState) : replayBattleState
   const spectator = useMemo(
     () => buildSpectatorModel(battleState, { runtimeMode }),
     [battleState, runtimeMode],
@@ -228,6 +316,34 @@ function App() {
   const focusedAgent: AgentId = effectiveViewMode === 'claude' ? 'claude' : 'codex'
   const focusedSide = spectator.sides[focusedAgent]
   const skinCssVars = useMemo(() => getSkinCssVars(webSkin), [webSkin])
+  const evalModel = useMemo(() => buildEvalModel(battleState), [battleState])
+  const visibleAgents = isLiveSession ? [battleState.agents.codex] : agents
+  const scorecardPhase = runtimeMode === 'demo-replay' && !isReplayComplete ? 'Live' : 'Final'
+  const modeLine = isLiveSession
+    ? `Live Session · 1P Codex · ${battleState.events.length} events`
+    : `Demo Replay · ${replayEventCount}/${demoEvents.length} events`
+  const objectiveHeading = webSkin.id !== 'default' ? 'Epic Objective' : 'Center Objective'
+  const latestDeltas = [...battleState.deltas].reverse().slice(0, 4)
+  const latestCodexDelta = latestDeltas.find((delta) => delta.agent === 'codex')
+  const latestClaudeDelta = latestDeltas.find((delta) => delta.agent === 'claude')
+  const latestCallout = spectator.callouts.at(-1) ?? spectator.objective.detail
+  const currentReplayEvent = demoEvents[Math.max(0, replayEventCount - 1)]
+  const replayProgress = demoEvents.length === 0 ? 100 : (replayEventCount / demoEvents.length) * 100
+  const recentEventLines = battleState.log.slice(-3).reverse()
+
+  const restartReplay = () => {
+    setReplayEventCount(0)
+    setIsReplayPlaying(true)
+  }
+
+  const toggleReplay = () => {
+    if (isReplayComplete) {
+      restartReplay()
+      return
+    }
+
+    setIsReplayPlaying((playing) => !playing)
+  }
 
   useEffect(() => {
     let isActive = true
@@ -293,6 +409,18 @@ function App() {
     }
   }, [runtimeMode])
 
+  useEffect(() => {
+    if (runtimeMode !== 'demo-replay' || !isReplayActivelyPlaying) return undefined
+
+    const intervalId = window.setInterval(() => {
+      setReplayEventCount((count) => Math.min(demoEvents.length, count + 1))
+    }, 3000 / replaySpeed)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [isReplayActivelyPlaying, replaySpeed, runtimeMode])
+
   return (
     <main
       className={`arena-shell ${webSkin.id === 'default' ? '' : 'arena-shell--custom-skin'}`}
@@ -304,9 +432,9 @@ function App() {
             <p className="eyebrow">{spectator.runtime.label}</p>
             <h1 id="arena-title">Agent Arena</h1>
             <p className="observer-bar__summary">
-              Turns coding-agent sessions into live or replayable battle views.
-              For this demo, Codex generates and verifies the replay; the Codex
-              app browser makes it reviewable.
+              {isLiveSession
+                ? 'Live Session · 1P Codex'
+                : 'Live and replayable battle views for coding-agent sessions.'}
             </p>
           </div>
           <div className="observer-actions">
@@ -356,12 +484,10 @@ function App() {
           <div className="world-controls">
             <div className="world-controls__left">
               <div className="world-hud world-hud--top">
-                <span>{spectator.runtime.source}</span>
-                <strong>{webSkin.labels.battleTitle ?? battleState.label}</strong>
+                <span>{modeLine}</span>
                 {runtimeMode === 'live-session' ? (
-                  <em>{liveSnapshot?.warning ?? `${battleState.events.length} live events`}</em>
+                  <em>{liveSnapshot?.warning ?? 'polling live stream'}</em>
                 ) : null}
-                {webSkin.id !== 'default' ? <em>{webSkin.name}</em> : null}
               </div>
 
               {isLiveSession ? (
@@ -397,7 +523,7 @@ function App() {
 
             <aside className="tactical-panel" aria-label="Mission control">
               <section className="tactical-objective" aria-label="Animated center objective">
-                <p className="eyebrow">Center {webSkin.labels.blocker}</p>
+                <p className="eyebrow">{objectiveHeading}</p>
                 <h2>{spectator.title}</h2>
                 <p>{spectator.objective.label}</p>
                 <strong>{spectator.victoryLine}</strong>
@@ -411,6 +537,67 @@ function App() {
             </aside>
           </div>
 
+          {runtimeMode === 'demo-replay' ? (
+            <div className="replay-control-bar" aria-label="Demo replay controls">
+              <div className="replay-actions">
+                <button type="button" onClick={toggleReplay}>
+                  {isReplayActivelyPlaying ? 'Pause' : 'Play'}
+                </button>
+                <button type="button" onClick={restartReplay}>
+                  Restart
+                </button>
+                <div className="speed-control" aria-label="Replay speed">
+                  {replaySpeeds.map((speed) => (
+                    <button
+                      className={replaySpeed === speed ? 'is-active' : ''}
+                      key={speed}
+                      type="button"
+                      onClick={() => setReplaySpeed(speed)}
+                    >
+                      {speed}x
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="replay-progress" aria-label="Replay progress">
+                <div className="replay-progress__label">
+                  <span>{isReplayComplete ? 'Final verdict' : 'Normalized event stream'}</span>
+                  <strong>{currentReplayEvent?.label ?? 'Waiting for first event'}</strong>
+                </div>
+                <div className="replay-progress__track" aria-hidden="true">
+                  <span style={{ width: `${replayProgress}%` }} />
+                </div>
+                <div
+                  className="replay-milestones"
+                  style={{ '--event-count': demoEvents.length } as CSSProperties}
+                  aria-hidden="true"
+                >
+                  {demoEvents.map((event, index) => (
+                    <span
+                      className={[
+                        index < replayEventCount ? 'is-complete' : '',
+                        index + 1 === replayEventCount ? 'is-current' : '',
+                        event.type.includes('passed') || event.type === 'build_passed' ? 'is-check' : '',
+                      ].filter(Boolean).join(' ')}
+                      key={event.id}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className={`trust-badge trust-badge--${evalModel.trustLabel.toLowerCase().replace(' ', '-')}`}>
+                <span>Trust</span>
+                <strong>{evalModel.trustLabel}</strong>
+              </div>
+              <div className="replay-feed" aria-label="Recent replay events">
+                {recentEventLines.length > 0 ? (
+                  recentEventLines.map((entry) => <span key={entry}>{entry}</span>)
+                ) : (
+                  <span>Codex is ready to receive the demo prompt.</span>
+                )}
+              </div>
+            </div>
+          ) : null}
+
           <div className="world-scene" aria-hidden="true">
             <div className="skyline" />
             <div className="terrain terrain--far" />
@@ -418,8 +605,15 @@ function App() {
             <div className="path-lane path-lane--left" />
             <div className="path-lane path-lane--right" />
             <div className="scene-divider" />
+            <div className="river-cut" />
+            <div className="moba-tower moba-tower--codex" />
+            <div className="moba-tower moba-tower--claude" />
 
             <div className="boss-objective boss-objective--codex">
+              <div className="boss-pit" />
+              <div className="boss-health" style={{ '--boss-health': `${Math.max(12, 100 - spectator.sides.codex.agent.score / 7)}%` } as CSSProperties}>
+                <span />
+              </div>
               <div className="boss-ring" />
               <div className="boss-core">
                 <i className="monster-horn monster-horn--left" />
@@ -427,16 +621,20 @@ function App() {
                 <i className="monster-maw" />
                 <span />
                 <span />
-                <strong>!</strong>
+                <strong />
               </div>
             </div>
 
             <div className="boss-objective boss-objective--claude">
+              <div className="boss-pit" />
+              <div className="boss-health" style={{ '--boss-health': `${Math.max(12, 100 - spectator.sides.claude.agent.score / 7)}%` } as CSSProperties}>
+                <span />
+              </div>
               <div className="boss-ring" />
               <div className="boss-core">
                 <span />
                 <span />
-                <strong>!</strong>
+                <strong />
               </div>
             </div>
 
@@ -458,13 +656,13 @@ function App() {
 
             <div className="summon-party summon-party--codex">
               {spectator.sides.codex.units.map((unit, index) => (
-                <span key={`${unit}-${index}`}>{unit}</span>
+                <span key={`${unit}-${index}`}>{webSkin.id === 'default' ? unit : ''}</span>
               ))}
             </div>
 
             <div className="summon-party summon-party--claude">
               {spectator.sides.claude.units.map((unit, index) => (
-                <span key={`${unit}-${index}`}>{unit}</span>
+                <span key={`${unit}-${index}`}>{webSkin.id === 'default' ? unit : ''}</span>
               ))}
             </div>
 
@@ -483,6 +681,66 @@ function App() {
                 <strong>C</strong>
               </div>
             </div>
+
+            <div className="combat-float-stack combat-float-stack--codex">
+              {latestCodexDelta ? (
+                <span key={`${latestCodexDelta.eventId}-codex-float`}>
+                  {formatCombatDelta(latestCodexDelta.points, latestCodexDelta.reason)}
+                </span>
+              ) : null}
+            </div>
+
+            <div className="combat-float-stack combat-float-stack--claude">
+              {latestClaudeDelta ? (
+                <span key={`${latestClaudeDelta.eventId}-claude-float`}>
+                  {formatCombatDelta(latestClaudeDelta.points, latestClaudeDelta.reason)}
+                </span>
+              ) : null}
+            </div>
+
+            <div className="moba-minimap" aria-hidden="true">
+              <span className="minimap-base minimap-base--codex" />
+              <span className="minimap-base minimap-base--claude" />
+              <span className="minimap-lane minimap-lane--main" />
+              <span className="minimap-lane minimap-lane--river" />
+              <span className="minimap-objective" />
+              <span className="minimap-agent minimap-agent--codex" />
+              {effectiveViewMode === 'split' ? <span className="minimap-agent minimap-agent--claude" /> : null}
+            </div>
+            <div className="moba-victory-banner">
+              <span>{latestCallout}</span>
+              <strong>{spectator.victoryLine}</strong>
+            </div>
+          </div>
+
+          <div className="moba-command-hud" aria-label="MOBA command HUD">
+            {mobaAbilities.map((ability, index) => {
+              const isPrimed = index === Math.min(mobaAbilities.length - 1, latestDeltas.length)
+
+              return (
+                <div className={`ability-slot ${isPrimed ? 'ability-slot--primed' : ''}`} key={ability.key}>
+                  <strong>{ability.key}</strong>
+                  <span>{ability.label}</span>
+                </div>
+              )
+            })}
+            <div className="resource-strip">
+              <span style={{ width: `${spectator.sides.codex.meters.health}%` }} />
+              <strong>HP {formatStat(spectator.sides.codex.meters.health)}</strong>
+            </div>
+            <div className="resource-strip resource-strip--momentum">
+              <span style={{ width: `${spectator.sides.codex.meters.momentum}%` }} />
+              <strong>Momentum {formatStat(spectator.sides.codex.meters.momentum)}</strong>
+            </div>
+          </div>
+
+          <div className="codex-desktop-pane" aria-label="Codex desktop workflow">
+            <span>Codex desktop workflow</span>
+            <strong>
+              {runtimeMode === 'demo-replay'
+                ? `Prompt pane: replaying ${currentReplayEvent?.label ?? 'mission setup'} through the shared reducer`
+                : 'Live pane: watching normalized Codex session events'}
+            </strong>
           </div>
 
           <div
@@ -524,97 +782,103 @@ function App() {
 
         <aside className="caster-feed" aria-label="Caster callouts">
           <span>{webSkin.labels.feed}</span>
-          {spectator.callouts.map((callout) => (
-            <strong key={callout}>{callout}</strong>
+          {[...spectator.callouts].reverse().map((callout, index) => (
+            <strong key={`${callout}-${index}`}>{callout}</strong>
           ))}
         </aside>
       </section>
 
-      <section className="battle-grid" aria-label="Replay details">
-        <article className="panel final-scorecard">
-          <div className="panel__header">
-            <p className="eyebrow">Final Victory {webSkin.labels.scorecard ?? 'Scorecard'}</p>
-            <h2>{spectator.victoryLine}</h2>
-          </div>
-          <div className="scorecard-grid">
-            {agents.map((agent) => (
-              <ScorecardPanel
-                key={agent.id}
-                agent={agent}
-                isWinner={agent.id === battleState.winner}
-                skin={webSkin}
-              />
-            ))}
-          </div>
-        </article>
+      <details className="details-drawer">
+        <summary>Scorecards, feed, and workflow</summary>
 
-        <article className="panel mission-panel">
-          <div className="panel__header">
-            <p className="eyebrow">Mission Highlights</p>
-            <h2>Turning Points</h2>
-          </div>
-          <ul className="highlight-list">
-            {battleState.highlights.map((highlight) => (
-              <li key={highlight}>{highlight}</li>
-            ))}
-          </ul>
-        </article>
+        <section className="battle-grid" aria-label="Replay details">
+          <EvalSummary state={battleState} />
 
-        <article className="panel panel--scroll">
-          <div className="panel__header">
-            <p className="eyebrow">Caster Ledger</p>
-            <h2>Score Changes</h2>
-          </div>
-          <ol className="delta-list">
-            {battleState.deltas.map((delta, index) => {
-              const agent = battleState.agents[delta.agent]
+          <article className="panel final-scorecard">
+            <div className="panel__header">
+              <p className="eyebrow">{scorecardPhase} {webSkin.labels.scorecard ?? 'Scorecard'}</p>
+              <h2>{spectator.victoryLine}</h2>
+            </div>
+            <div className="scorecard-grid">
+              {visibleAgents.map((agent) => (
+                <ScorecardPanel
+                  key={agent.id}
+                  agent={agent}
+                  isWinner={agent.id === battleState.winner}
+                  skin={webSkin}
+                />
+              ))}
+            </div>
+          </article>
 
-              return (
-                <li key={`${delta.eventId}-${index}`}>
-                  <span className="delta-list__agent">{agent.name}</span>
-                  <span className="delta-list__reason">{delta.reason}</span>
-                  <strong
-                    className={
-                      delta.points >= 0
-                        ? 'delta-list__points delta-list__points--gain'
-                        : 'delta-list__points delta-list__points--loss'
-                    }
-                  >
-                    {formatSigned(delta.points)}
-                  </strong>
-                </li>
-              )
-            })}
-          </ol>
-        </article>
+          <article className="panel mission-panel">
+            <div className="panel__header">
+              <p className="eyebrow">Highlights</p>
+              <h2>Turning Points</h2>
+            </div>
+            <ul className="highlight-list">
+              {battleState.highlights.map((highlight) => (
+                <li key={highlight}>{highlight}</li>
+              ))}
+            </ul>
+          </article>
 
-        <article className="panel panel--scroll">
-          <div className="panel__header">
-            <p className="eyebrow">Replay Timeline</p>
-            <h2>Event Feed</h2>
-          </div>
-          <ol className="event-log">
-            {battleState.log.map((entry, index) => (
-              <li key={`${entry}-${index}`}>{entry}</li>
-            ))}
-          </ol>
-        </article>
+          <article className="panel panel--scroll">
+            <div className="panel__header">
+              <p className="eyebrow">Ledger</p>
+              <h2>Score Changes</h2>
+            </div>
+            <ol className="delta-list">
+              {[...battleState.deltas].reverse().map((delta, index) => {
+                const agent = battleState.agents[delta.agent]
 
-        <article className="panel panel--wide codex-workflow">
-          <div className="panel__header">
-            <p className="eyebrow">Built in Codex</p>
-            <h2>Codex Workflow</h2>
-          </div>
-          <ul className="workflow-list">
-            <li>Parallel Codex sessions: implementation + research/demo prep</li>
-            <li>Worktree-based implementation</li>
-            <li>Terminal verification: tests, build, demo commands</li>
-            <li>Codex-built replay tool, previewed inside the Codex desktop workflow</li>
-            <li>Shared event stream supports demo replay now and live session mode next</li>
-            <li>Skins change presentation only; scoring and event semantics stay shared</li>
-          </ul>
-        </article>
-      </section>
+                return (
+                  <li key={`${delta.eventId}-${index}`}>
+                    <span className="delta-list__agent">{agent.name}</span>
+                    <span className="delta-list__reason">{delta.reason}</span>
+                    <strong
+                      className={
+                        delta.points >= 0
+                          ? 'delta-list__points delta-list__points--gain'
+                          : 'delta-list__points delta-list__points--loss'
+                      }
+                    >
+                      {formatSigned(delta.points)}
+                    </strong>
+                  </li>
+                )
+              })}
+            </ol>
+          </article>
+
+          <article className="panel panel--scroll">
+            <div className="panel__header">
+              <p className="eyebrow">Timeline</p>
+              <h2>Event Feed</h2>
+            </div>
+            <ol className="event-log">
+              {[...battleState.log].reverse().map((entry, index) => (
+                <li key={`${entry}-${index}`}>{entry}</li>
+              ))}
+            </ol>
+          </article>
+
+          <article className="panel panel--wide codex-workflow">
+            <div className="panel__header">
+              <p className="eyebrow">Built in Codex</p>
+              <h2>Codex Workflow</h2>
+            </div>
+            <ul className="workflow-list">
+              <li>Parallel sessions</li>
+              <li>Worktree implementation</li>
+              <li>Tests, lint, build</li>
+              <li>Codex desktop preview</li>
+              <li>Shared replay/live stream</li>
+              <li>Presentation-only skins</li>
+            </ul>
+          </article>
+        </section>
+      </details>
 
       {webSkin.id !== 'default' || webSkin.warning ? (
         <aside className="skin-disclaimer" aria-label="Skin disclaimer">

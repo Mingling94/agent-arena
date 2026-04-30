@@ -63,18 +63,30 @@ new lower pane:
 pnpm arena live --events .agent-arena/live/events.jsonl --view split -- codex
 ```
 
-Or run the scripted tmux demo:
+Or run the organized tmux demos:
+
+```bash
+pnpm demo:replay
+pnpm demo:live
+pnpm demo:compare
+```
+
+`demo:replay` is the recommended terminal recording shot. It uses a throwaway
+demo repo, opens the real Codex CLI in the lower pane, and emits HUD events
+every second. After Codex opens, it auto-submits a short demo prompt so the
+lower pane visibly starts a response while the HUD tracks progress.
+
+`demo:live` is the real product-direction mode: it opens the HUD plus Codex pane
+and waits for explicit events in `.agent-arena/live/events.jsonl`.
+
+`demo:compare` shows the Codex vs Claude Code comparison/race framing.
 
 ```bash
 pnpm demo:tmux-live
+pnpm demo:tmux-live:quick
 ```
 
-The scripted demo defaults to a solo Codex live session. To show a Codex vs
-Claude Code race instead:
-
-```bash
-AGENT_ARENA_MODE=race pnpm demo:tmux-live
-```
+`demo:reply` and `demo:tmux-live` are kept as compatibility aliases for `demo:replay`.
 
 Export a skin-neutral battle state and open the Codex-built web replay tool:
 

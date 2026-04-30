@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import process from 'node:process'
 import { demoEvents } from '../arena/demoEvents'
-import { applyBattleEvent, createInitialBattle, finalizeBattle } from '../arena/engine'
+import { buildBattleReplayState, createInitialBattle } from '../arena/engine'
 import { parseEventsJsonl } from '../arena/io'
 import type { ArenaSkin } from '../arena/skins'
 import type { BattleEvent, BattleState } from '../arena/types'
@@ -96,10 +96,13 @@ function renderHud(
   eventCount: number,
 ): void {
   const rows = process.stdout.rows ?? 30
+  const columns = process.stdout.columns ?? 80
   const output = renderTerminal(liveState.battle, skin, {
-    view: options.view ?? 'split',
+    view: compactViewForWidth(options.view ?? 'split', options.soloAgent, columns),
     agent: options.agent,
+    soloAgent: options.soloAgent,
     runtimeMode: 'live-session',
+    maxWidth: columns,
   })
   const hudLines = [
     ...output.split('\n'),
@@ -108,7 +111,13 @@ function renderHud(
   const hudHeight = Math.min(hudLines.length, rows - 1)
 
   process.stdout.write('\x1b[H\x1b[J')
-  process.stdout.write(hudLines.slice(0, hudHeight).map(clearLine).join('\n'))
+  process.stdout.write(hudLines.slice(0, hudHeight).map((line) => clearLine(fitTerminalLine(line, columns))).join('\n'))
+}
+
+function compactViewForWidth(view: TerminalRenderOptions['view'], soloAgent: TerminalRenderOptions['soloAgent'], columns: number): TerminalRenderOptions['view'] {
+  if (soloAgent) return 'scene'
+  if (view === 'split' && columns < 88) return 'feed'
+  return view
 }
 
 function enterLiveScreen(): void {
@@ -138,24 +147,17 @@ function readEventsFromPath(eventsPath?: string, fallback: BattleEvent[] = []): 
 }
 
 function syncLiveBattle(liveState: LiveState, eventCount: number): void {
-  if (eventCount < liveState.appliedCount) {
-    liveState.battle = createInitialBattle('Matched Race')
-    liveState.appliedCount = 0
-  }
-
-  const nextEvents = liveState.events.slice(liveState.appliedCount, eventCount)
-  for (const event of nextEvents) applyBattleEvent(liveState.battle, event)
+  liveState.battle = buildBattleReplayState(liveState.events, 'Matched Race', eventCount, {
+    finalizeWhen: 'final-event-visible',
+  })
   liveState.appliedCount = eventCount
-
-  const visibleEvents = liveState.events.slice(0, eventCount)
-  const hasFinalEvent = visibleEvents.some((event) => event.type === 'task_completed' || event.type === 'judge_verdict')
-  if (hasFinalEvent) {
-    finalizeBattle(liveState.battle)
-  } else {
-    liveState.battle.winner = null
-  }
 }
 
 function clearLine(line: string): string {
   return `${line}\x1b[0K`
+}
+
+function fitTerminalLine(line: string, columns: number): string {
+  if (columns <= 1) return ''
+  return line.length >= columns ? line.slice(0, columns - 1) : line
 }

@@ -77,7 +77,10 @@ describe('terminal arena demo', () => {
     })
 
     expect(output).toContain('CODEX LIVE SESSION')
-    expect(output).toContain('SESSION CONTROL')
+    expect(output).toContain('SESSION HUD')
+    expect(output).toContain('METRICS')
+    expect(output).toContain('EVENT FEED')
+    expect(output).toContain('CHECKS / MILESTONES')
     expect(output).toContain('Codex tracking active work')
     expect(output).not.toContain('Claude Code')
     expect(output).not.toContain('lint failed after patch')
