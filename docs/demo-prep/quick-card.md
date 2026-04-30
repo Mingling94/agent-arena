@@ -2,45 +2,47 @@
 
 ## Core Line
 
-Agent Arena is match replay for AI coding agents.
+Agent Arena is a live Codex workflow companion.
 
-It turns noisy sessions into a visual replay and scorecard showing which result
+It turns coding-agent sessions into a replay and scorecard showing which result
 is safer to trust.
 
-## Run
+## Start Here
 
-```bash
-cd /Users/ming/hackathon/bellevue-codex-2026/project/.worktrees/agent-arena-mvp
-pnpm arena demo --skin moba
-pnpm arena demo --skin oldschool-mmo
-```
+Use the Codex desktop app browser:
 
-Optional finisher:
-
-```bash
-pnpm arena demo --skin ../external-skins/<local-skin>
+```text
+http://127.0.0.1:5173/
 ```
 
 ## Say
 
-Same events.
+Codex built and verified this workflow.
 
-Same scoring.
+Agent sessions emit normalized events.
 
-Different skin.
+Agent Arena renders the same state in web and terminal.
 
-Same verdict.
+The scorecard explains trust.
 
-## Point Out
+## Show
 
-- verified checks beat raw activity
-- blockers and regressions are visible
-- subagents/helpers become readable
-- final scorecard explains trust
+- web split replay first
+- scorecard and event feed
+- Codex Workflow panel
+- terminal proof if time allows
+
+## Terminal Proof
+
+```bash
+pnpm arena demo --view split
+pnpm arena live --view feed
+pnpm arena watch-log --agent codex --input .agent-arena/live/codex.log --once
+```
 
 ## Close
 
-This is not a benchmark by default.
+This is not a native Codex extension.
 
-It is a replay layer. It becomes a fair race only with controlled task, repo,
-and start conditions.
+It is an explicit, opt-in live event stream rendered inside the Codex desktop
+workflow.

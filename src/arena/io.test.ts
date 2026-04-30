@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseEventsJsonl } from './io'
-import { parseTranscript } from './transcriptParser'
+import { classifyTranscriptLine, parseTranscript } from './transcriptParser'
 
 describe('arena io', () => {
   it('parseEventsJsonl parses a normalized event line into a test_passed BattleEvent', () => {
@@ -29,5 +29,14 @@ describe('arena io', () => {
       at: 2,
       label: 'tests passed',
     })
+  })
+
+  it('classifyTranscriptLine maps one log line into a normalized live event shape', () => {
+    expect(classifyTranscriptLine('pnpm build passed')).toEqual({
+      type: 'build_passed',
+      label: 'build passed',
+    })
+
+    expect(classifyTranscriptLine('no interesting signal')).toBeNull()
   })
 })

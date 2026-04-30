@@ -1,31 +1,89 @@
 import { describeEventForSkin } from '../arena/skins'
 import type { ArenaSkin } from '../arena/skins'
-import type { AgentState, BattleState, BattleEvent } from '../arena/types'
+import { buildSpectatorModel } from '../arena/spectatorModel'
+import type { SpectatorModel, SpectatorRuntimeMode, SpectatorSide, SpectatorView } from '../arena/spectatorModel'
+import type { AgentId, AgentState, BattleState, BattleEvent } from '../arena/types'
 
-export function renderTerminal(state: BattleState, skin: ArenaSkin): string {
-  const codex = renderAgent(state.agents.codex, skin)
-  const claude = renderAgent(state.agents.claude, skin)
-  const blockers = formatBlockers(state, skin)
-  const log = formatFeed(state, skin)
-  const highlights = formatHighlights(state, skin)
+const FRAME_WIDTH = 80
+const LANE_WIDTH = 27
+const CENTER_WIDTH = 20
+const SCENE_COLUMN_WIDTH = 24
+const BAR_WIDTH = 10
+
+export type TerminalView = SpectatorView
+
+export interface TerminalRenderOptions {
+  view?: SpectatorView
+  agent?: AgentId
+  runtimeMode?: SpectatorRuntimeMode
+  soloAgent?: AgentId
+}
+
+export function renderTerminal(
+  state: BattleState,
+  skin: ArenaSkin,
+  options: TerminalRenderOptions = {},
+): string {
+  const model = buildSpectatorModel(state, {
+    runtimeMode: options.runtimeMode,
+    viewLabel: options.runtimeMode === 'live-session' ? 'Live arena session' : undefined,
+  })
+  const view = options.view ?? 'split'
+  const agent = options.agent ?? 'codex'
+  const eventAgent = options.soloAgent
+  const blockers = formatBlockers(state, skin, eventAgent)
+  const log = formatFeed(state, skin, eventAgent)
+  const highlights = formatHighlights(state, skin, eventAgent)
   const winner = state.winner ? `Winner: ${state.winner === 'tie' ? 'Tie' : state.agents[state.winner].name}` : 'Winner: pending'
-  const divider = '='.repeat(64)
+  const divider = '='.repeat(FRAME_WIDTH)
+
+  const parts = { blockers, log, highlights, winner, matchLabel: state.label }
+
+  if (view === 'scene') return renderSceneView(model, skin, parts, options.soloAgent)
+  if (view === 'focus') return renderFocusView(model, skin, agent, parts)
+  if (view === 'feed') return renderFeedView(model, skin, parts)
 
   return [
     'AGENT ARENA',
     `Skin: ${skin.name}  Match: ${state.label}  ${winner}`,
+    `Runtime: ${model.runtime.label}  Source: ${model.runtime.source}`,
+    `View: ${model.viewLabel}  ${model.victoryLine}`,
     divider,
-    codex,
-    `---------------------- ${skin.labels.blocker} ----------------------`,
+    'THIRD-PERSON ARENA',
+    renderThirdPersonScene(model, skin),
+    divider,
+    'ARENA VIEW',
+    renderSplitView(model, skin),
+    divider,
+    `Center ${titleCase(skin.labels.blocker)}`,
     `  ${blockers}`,
+    `  Status: ${model.objective.status} - ${model.objective.detail}`,
     `  ${skin.glyphs.blocker} Center ${skin.labels.blocker}: ${skin.labels.finalResult}`,
     divider,
-    claude,
     '-------------------------- HIGHLIGHTS --------------------------',
     highlights || '  No highlights yet',
-    `------------------------ ${skin.labels.feed} ------------------------`,
+    `------------------ Recent Caster Feed (${skin.labels.feed}) ------------------`,
     log || '  No events yet',
     divider,
+  ].join('\n')
+}
+
+function renderSceneView(
+  model: SpectatorModel,
+  skin: ArenaSkin,
+  parts: { blockers: string; log: string; highlights: string; winner: string; matchLabel: string },
+  soloAgent?: AgentId,
+): string {
+  return [
+    renderCinematicScene(model, skin, soloAgent, parts.blockers),
+    '',
+    renderStatusDock(model, skin, parts, soloAgent),
+    '',
+    'CASTER FEED',
+    parts.log || '  No events yet',
+    '',
+    'DECISIVE MOMENTS',
+    parts.highlights || '  No highlights yet',
   ].join('\n')
 }
 
@@ -38,8 +96,267 @@ export function renderAgent(agent: AgentState, skin: ArenaSkin): string {
   ].join('\n')
 }
 
-function formatBlockers(state: BattleState, skin: ArenaSkin): string {
-  const blockerEvents = state.events.filter((event) => event.type === 'blocker_detected' || event.type === 'test_failed')
+function renderCinematicScene(
+  model: SpectatorModel,
+  skin: ArenaSkin,
+  soloAgent?: AgentId,
+  soloBlockers?: string,
+): string {
+  const codex = model.sides.codex
+  const claude = model.sides.claude
+  const solo = soloAgent ? model.sides[soloAgent] : null
+  const objective = soloAgent ? firstBlockerLabel(soloBlockers) : model.objective.label
+  const outcome = solo
+    ? `${solo.agent.name} live session`
+    : model.objective.status === 'secured'
+      ? model.victoryLine
+      : 'Objective contested'
+  const codexPush = codex.meters.score >= claude.meters.score ? 'push >>>' : 'holding'
+  const claudePush = claude.meters.score > codex.meters.score ? '<<< push' : 'holding'
+
+  if (solo) {
+    return [
+      '╭──────────────────────────── CODEX LIVE SESSION ─────────────────────────────╮',
+      cinemaLine(`${solo.agent.name} tracking active work`),
+      cinemaLine(''),
+      cinemaLine(`◆ Current ${titleCase(skin.labels.blocker)} ◆`),
+      cinemaLine(`╭──────── ${clip(objective, 28)} ────────╮`),
+      cinemaLine('│            CHECKPOINT CORE             │'),
+      cinemaLine('╰────────────────────────────────────────╯'),
+      cinemaLine(''),
+      cinemaColumns('workspace', 'current objective', 'verification'),
+      cinemaColumns('  O/', '          >>>', 'tests/build'),
+      cinemaColumns(' /| ', '      center pressure      ', model.objective.status),
+      cinemaColumns(' / \\', model.runtime.label, `${solo.meters.score} pts`),
+      cinemaColumns(`HP ${bar(solo.meters.health)}`, `momentum ${bar(solo.meters.momentum)}`, `${skin.glyphs.assist} ${solo.units[0] ?? 'Solo run'}`),
+      cinemaLine(''),
+      '╰──────────────────────────────────────────────────────────────────────────────╯',
+    ].join('\n')
+  }
+
+  return [
+    '╭────────────────────────────── AGENT ARENA LIVE ──────────────────────────────╮',
+    cinemaLine(outcome),
+    cinemaLine(''),
+    cinemaLine(`◆ ${titleCase(skin.labels.blocker)}: ${skin.labels.finalResult} ◆`),
+    cinemaLine(`╭──────── ${clip(objective, 28)} ────────╮`),
+    cinemaLine('│            CHECKPOINT CORE             │'),
+    cinemaLine('╰────────────────────────────────────────╯'),
+    cinemaLine(''),
+    cinemaColumns(codex.agent.name, 'arena lane', claude.agent.name),
+    cinemaColumns('  O/', `${codexPush} / ${claudePush}`, '\\O  '),
+    cinemaColumns(' /| ', '      center pressure      ', ' |\\ '),
+    cinemaColumns(' / \\', model.objective.status, '/ \\ '),
+    cinemaColumns(`HP ${bar(codex.meters.health)}`, `score gap ${Math.abs(codex.meters.score - claude.meters.score)}`, `HP ${bar(claude.meters.health)}`),
+    cinemaColumns(`${codex.meters.score} pts`, model.runtime.label, `${claude.meters.score} pts`),
+    cinemaColumns(`${skin.glyphs.assist} ${codex.units[0] ?? 'Solo run'}`, 'helpers', `${skin.glyphs.assist} ${claude.units[0] ?? 'Solo run'}`),
+    cinemaLine(''),
+    '╰──────────────────────────────────────────────────────────────────────────────╯',
+  ].join('\n')
+}
+
+function renderStatusDock(
+  model: SpectatorModel,
+  skin: ArenaSkin,
+  parts: { blockers: string; winner: string; matchLabel: string },
+  soloAgent?: AgentId,
+): string {
+  if (soloAgent) {
+    const side = model.sides[soloAgent]
+
+    return [
+      '╭────────────────────────────── SESSION CONTROL ──────────────────────────────╮',
+      dockLine(`${side.agent.name} | ${model.viewLabel} | ${model.runtime.label}`),
+      dockLine(`score ${side.meters.score} pts  | health ${Math.round(side.meters.health)}  | momentum ${side.meters.momentum}`),
+      dockLine(`${skin.labels.blocker}: ${parts.blockers}`),
+      '╰──────────────────────────────────────────────────────────────────────────────╯',
+    ].join('\n')
+  }
+
+  return [
+    '╭────────────────────────────── MATCH CONTROL ────────────────────────────────╮',
+    dockLine(`${parts.matchLabel} | ${parts.winner} | ${model.viewLabel}`),
+    dockLine(`Codex ${model.sides.codex.meters.score} pts  vs  Claude Code ${model.sides.claude.meters.score} pts  | objective ${model.objective.status}`),
+    dockLine(`${skin.labels.blocker}: ${parts.blockers}`),
+    '╰──────────────────────────────────────────────────────────────────────────────╯',
+  ].join('\n')
+}
+
+function firstBlockerLabel(blockers?: string): string {
+  if (!blockers || blockers === 'No active blockers') return 'active session'
+  const first = blockers.split(' | ')[0] ?? blockers
+  return first.includes(': ') ? first.split(': ').slice(1).join(': ') : first
+}
+
+function cinemaLine(value: string): string {
+  return `│${centerFit(value, FRAME_WIDTH - 2)}│`
+}
+
+function cinemaColumns(left: string, center: string, right: string): string {
+  return `│ ${fit(left, 22)} ${centerFit(center, 30)} ${fit(right, 22)} │`
+}
+
+function dockLine(value: string): string {
+  return `│ ${fit(value, FRAME_WIDTH - 4)} │`
+}
+
+function renderSplitView(model: SpectatorModel, skin: ArenaSkin): string {
+  const codex = renderLane(model.sides.codex, 'Codex Lane', skin)
+  const claude = renderLane(model.sides.claude, 'Claude Lane', skin)
+  const center = renderCenter(model, skin)
+
+  return codex.map((line, index) => `${line} | ${center[index]} | ${claude[index]}`).join('\n')
+}
+
+function renderFocusView(
+  model: SpectatorModel,
+  skin: ArenaSkin,
+  agentId: AgentId,
+  parts: { blockers: string; log: string; highlights: string; winner: string; matchLabel: string },
+): string {
+  const side = model.sides[agentId]
+  const agent = side.agent
+  const opponent = model.sides[agentId === 'codex' ? 'claude' : 'codex'].agent
+  const units = side.units.join(', ')
+  const focusDivider = '-'.repeat(60)
+
+  return [
+    'AGENT ARENA',
+    `Skin: ${skin.name}  Match: ${parts.matchLabel}  ${parts.winner}`,
+    `Runtime: ${model.runtime.label}  Source: ${model.runtime.source}`,
+    `View: ${model.viewLabel}  ${model.victoryLine}`,
+    focusDivider,
+    'THIRD-PERSON ARENA',
+    renderThirdPersonScene(model, skin, agentId),
+    focusDivider,
+    'FOCUS VIEW',
+    `Focused Agent: ${agent.name}`,
+    `Opponent: ${opponent.name}`,
+    `Model: ${side.runStats.backingModel}`,
+    `Repo: ${side.runStats.repo}`,
+    `Task: ${side.runStats.task}`,
+    `${skin.glyphs.score} ${skin.labels.score}: ${side.meters.score}  ${skin.labels.momentum}: ${side.meters.momentum}`,
+    `HP ${bar(side.meters.health)} ${Math.round(side.meters.health)}`,
+    `Momentum ${bar(side.meters.momentum)} ${side.meters.momentum}`,
+    `Units: ${skin.glyphs.assist} ${skin.labels.assist}`,
+    `  ${units}`,
+    focusDivider,
+    `Center ${titleCase(skin.labels.blocker)}`,
+    `  ${parts.blockers}`,
+    `  Status: ${model.objective.status} - ${model.objective.detail}`,
+    `  ${skin.glyphs.blocker} Center ${skin.labels.blocker}: ${skin.labels.finalResult}`,
+    focusDivider,
+    'Recent Caster Feed',
+    parts.log || '  No events yet',
+    focusDivider,
+    'Decisive Moments',
+    parts.highlights || '  No highlights yet',
+    focusDivider,
+  ].join('\n')
+}
+
+function renderFeedView(
+  model: SpectatorModel,
+  skin: ArenaSkin,
+  parts: { blockers: string; log: string; highlights: string; winner: string; matchLabel: string },
+): string {
+  return [
+    'AGENT ARENA',
+    `Skin: ${skin.name}  Match: ${parts.matchLabel}  ${parts.winner}`,
+    `Runtime: ${model.runtime.label}  Source: ${model.runtime.source}`,
+    `View: ${model.viewLabel}  ${model.victoryLine}`,
+    '-'.repeat(60),
+    'FEED VIEW',
+    `Score: Codex ${model.sides.codex.meters.score} | Claude Code ${model.sides.claude.meters.score}`,
+    `Center ${skin.labels.blocker}: ${skin.labels.finalResult}`,
+    `Status: ${model.objective.status} - ${model.objective.detail}`,
+    `Active ${skin.labels.blocker}: ${parts.blockers}`,
+    '-'.repeat(60),
+    'Recent Caster Feed',
+    parts.log || '  No events yet',
+    '-'.repeat(60),
+    'Decisive Moments',
+    parts.highlights || '  No highlights yet',
+    '-'.repeat(60),
+  ].join('\n')
+}
+
+function renderThirdPersonScene(model: SpectatorModel, skin: ArenaSkin, focusAgent?: AgentId): string {
+  const codex = model.sides.codex
+  const claude = model.sides.claude
+  const activeBlocker = model.objective.label
+  const codexUnit = renderUnit(codex, skin, focusAgent === 'codex')
+  const claudeUnit = renderUnit(claude, skin, focusAgent === 'claude')
+  const codexHelper = renderHelper(codex, skin)
+  const claudeHelper = renderHelper(claude, skin)
+
+  return [
+    sceneLine(''),
+    sceneLine(centerFit(`${skin.glyphs.blocker} ${titleCase(skin.labels.blocker)}: ${skin.labels.finalResult}`, 74)),
+    sceneLine(centerFit(model.objective.status === 'secured' ? model.victoryLine : 'Objective contested', 74)),
+    sceneLine(''),
+    sceneColumns(codexHelper, 'helpers', claudeHelper),
+    sceneColumns(codexUnit, `${skin.glyphs.blocker} ${activeBlocker}`, claudeUnit),
+    sceneColumns(`HP ${bar(codex.meters.health)}`, 'battle line', `HP ${bar(claude.meters.health)}`),
+    sceneColumns(`${codex.meters.score} pts`, model.objective.status, `${claude.meters.score} pts`),
+    sceneLine(''),
+  ].join('\n')
+}
+
+function renderUnit(side: SpectatorSide, skin: ArenaSkin, focused: boolean): string {
+  const marker = focused ? '>' : ' '
+  return `${marker}${glyphForAgent(side.agent, skin)} ${side.agent.name}${marker}`
+}
+
+function renderHelper(side: SpectatorSide, skin: ArenaSkin): string {
+  const helper = side.units[0] ?? 'Solo run'
+  return `${skin.glyphs.assist} ${helper}`
+}
+
+function sceneLine(value: string): string {
+  return `| ${fit(value, FRAME_WIDTH - 4)} |`
+}
+
+function sceneColumns(left: string, center: string, right: string): string {
+  return sceneLine(
+    `${fit(left, SCENE_COLUMN_WIDTH)} ${centerFit(center, SCENE_COLUMN_WIDTH)} ${fit(right, SCENE_COLUMN_WIDTH)}`,
+  )
+}
+
+function renderLane(side: SpectatorSide, lane: string, skin: ArenaSkin): string[] {
+  const agent = side.agent
+  const units = side.units.join(', ')
+  const momentumLabel = titleCase(skin.labels.momentum)
+
+  return [
+    fit(lane, LANE_WIDTH),
+    fit(`${glyphForAgent(agent, skin)} ${agent.name}`, LANE_WIDTH),
+    fit(`${skin.glyphs.score} ${skin.labels.score}: ${side.meters.score}`, LANE_WIDTH),
+    fit(`HP ${bar(side.meters.health)} ${Math.round(side.meters.health)}`, LANE_WIDTH),
+    fit(`${momentumLabel} ${bar(side.meters.momentum)} ${side.meters.momentum}`, LANE_WIDTH),
+    fit(`Units: ${skin.glyphs.assist} ${skin.labels.assist}`, LANE_WIDTH),
+    fit(`  ${units}`, LANE_WIDTH),
+  ]
+}
+
+function renderCenter(model: SpectatorModel, skin: ArenaSkin): string[] {
+  const blockerTitle = titleCase(skin.labels.blocker)
+
+  return [
+    centerFit(`Center ${blockerTitle}`, CENTER_WIDTH),
+    centerFit(`${skin.glyphs.blocker} ${skin.labels.finalResult}`, CENTER_WIDTH),
+    centerFit(model.objective.status, CENTER_WIDTH),
+    centerFit(model.objective.label, CENTER_WIDTH),
+    centerFit('Mission Result', CENTER_WIDTH),
+    centerFit(model.victoryLine, CENTER_WIDTH),
+    centerFit(model.viewLabel, CENTER_WIDTH),
+  ]
+}
+
+function formatBlockers(state: BattleState, skin: ArenaSkin, agent?: AgentId): string {
+  const blockerEvents = state.events.filter(
+    (event) => (!agent || event.agent === agent) && (event.type === 'blocker_detected' || event.type === 'test_failed'),
+  )
   if (blockerEvents.length === 0) return 'No active blockers'
 
   return blockerEvents
@@ -49,9 +366,11 @@ function formatBlockers(state: BattleState, skin: ArenaSkin): string {
     .join(' | ')
 }
 
-function formatHighlights(state: BattleState, skin: ArenaSkin): string {
+function formatHighlights(state: BattleState, skin: ArenaSkin, agent?: AgentId): string {
   const highlightEvents = state.events.filter(
-    (event) => event.type === 'test_passed' || event.type === 'build_passed' || event.type === 'task_completed' || event.type === 'judge_verdict',
+    (event) =>
+      (!agent || event.agent === agent) &&
+      (event.type === 'test_passed' || event.type === 'build_passed' || event.type === 'task_completed' || event.type === 'judge_verdict'),
   )
 
   return highlightEvents
@@ -60,10 +379,11 @@ function formatHighlights(state: BattleState, skin: ArenaSkin): string {
     .join('\n')
 }
 
-function formatFeed(state: BattleState, skin: ArenaSkin): string {
+function formatFeed(state: BattleState, skin: ArenaSkin, agent?: AgentId): string {
   const eventById = new Map<string, BattleEvent>(state.events.map((event) => [event.id, event]))
 
   return state.deltas
+    .filter((delta) => !agent || delta.agent === agent)
     .slice(-8)
     .map((delta) => {
       const event = eventById.get(delta.eventId)
@@ -72,4 +392,34 @@ function formatFeed(state: BattleState, skin: ArenaSkin): string {
       return `  ${state.agents[delta.agent].name}: ${text} - ${delta.reason} (${sign}${delta.points})`
     })
     .join('\n')
+}
+
+function glyphForAgent(agent: AgentState, skin: ArenaSkin): string {
+  return agent.id === 'codex' ? skin.glyphs.codex : skin.glyphs.claude
+}
+
+function bar(value: number): string {
+  const boundedValue = Math.max(0, Math.min(100, Math.round(value)))
+  const filled = Math.round((boundedValue / 100) * BAR_WIDTH)
+  return `[${'#'.repeat(filled)}${'-'.repeat(BAR_WIDTH - filled)}]`
+}
+
+function titleCase(value: string): string {
+  return value.replace(/\b\w/g, (match) => match.toUpperCase())
+}
+
+function fit(value: string, width: number): string {
+  const compact = value.length > width ? `${value.slice(0, width - 1)}~` : value
+  return compact.padEnd(width, ' ')
+}
+
+function clip(value: string, width: number): string {
+  return value.length > width ? `${value.slice(0, width - 1)}~` : value
+}
+
+function centerFit(value: string, width: number): string {
+  const compact = value.length > width ? `${value.slice(0, width - 1)}~` : value
+  const left = Math.floor((width - compact.length) / 2)
+  const right = width - compact.length - left
+  return `${' '.repeat(left)}${compact}${' '.repeat(right)}`
 }

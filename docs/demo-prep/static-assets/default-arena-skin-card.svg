@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="520" viewBox="0 0 920 520" role="img" aria-labelledby="title desc">
+  <title id="title">Default Arena Skin</title>
+  <desc id="desc">A demo card explaining that Agent Arena ships one default skin and supports external custom skins.</desc>
+  <rect width="920" height="520" rx="24" fill="#0a0f1c"/>
+  <rect x="28" y="28" width="864" height="464" rx="18" fill="#111827" stroke="#334155" stroke-width="2"/>
+  <text x="64" y="88" fill="#f8fafc" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="42" font-weight="800">One Trusted Replay</text>
+  <text x="64" y="128" fill="#93a4b8" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="20">The official app ships a clean default arena skin.</text>
+  <rect x="64" y="176" width="320" height="196" rx="12" fill="#172033" stroke="#2dd4bf" stroke-width="2"/>
+  <text x="92" y="224" fill="#e5edf6" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="24" font-weight="700">Default Arena</text>
+  <text x="92" y="270" fill="#a7b4c6" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="18">blockers</text>
+  <text x="92" y="306" fill="#a7b4c6" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="18">helpers</text>
+  <text x="92" y="342" fill="#a7b4c6" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="18">verified checks</text>
+  <path d="M414 274h92" stroke="#f2c76e" stroke-width="8" stroke-linecap="round"/>
+  <path d="M486 246l36 28-36 28" fill="none" stroke="#f2c76e" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="536" y="176" width="320" height="196" rx="12" fill="#201a27" stroke="#f2c76e" stroke-width="2"/>
+  <text x="564" y="224" fill="#e5edf6" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="24" font-weight="700">External Skins</text>
+  <text x="564" y="270" fill="#a7b4c6" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="18">local custom visuals</text>
+  <text x="564" y="306" fill="#a7b4c6" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="18">same scoring</text>
+  <text x="564" y="342" fill="#a7b4c6" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="18">same event semantics</text>
+  <text x="64" y="438" fill="#f8fafc" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="22" font-weight="700">Custom skins change presentation only. The replay and verdict stay trusted.</text>
+</svg>

@@ -2,61 +2,69 @@
 
 ## 0:00-0:15 Problem
 
-AI coding agents do a lot of work, but transcripts are hard to review.
+AI coding agents are easy to start and hard to review.
 
-When two agents attempt the same task, you need a match replay, not a wall of
-logs.
+Transcripts are noisy. Final diffs hide blockers, regressions, and recovery.
 
-## 0:15-0:30 Start Replay
+Agent Arena gives you the match replay.
 
-```bash
-pnpm arena demo --skin moba
+## 0:15-0:45 Web Replay In Codex
+
+Start in the Codex desktop app browser at:
+
+```text
+http://127.0.0.1:5173/
 ```
 
-This is a deterministic Codex vs Claude Code replay.
+Say:
 
-Same task. Same event stream. Outcome-weighted scoring.
+This is a Codex-built replay surface running inside the Codex desktop workflow.
 
-## 0:30-1:05 Match Story
+Point out:
 
-Claude Code starts fast with early file reads and edits.
+- Codex lane
+- Claude Code lane
+- center objective
+- winner
+- scorecard
 
-Codex hits a blocker, spawns a helper, and recovers.
+## 0:45-1:10 Live Mode
 
-The key events are verified outcomes:
+Say:
 
-- tests pass
-- build clears
-- blocker resolves
-- task completes
+Demo replay is the reliable path. Live mode is the product direction.
 
-Raw activity helps, but it cannot win alone.
+Agent sessions emit normalized events into a local JSONL stream. Agent Arena
+renders the same state in terminal and browser without scraping Codex internals.
 
-## 1:05-1:25 Scorecard
-
-The final scorecard explains the result:
-
-- verified progress
-- regressions
-- recovery time
-- delegation value
-- reviewability
-
-Codex wins because it clears checks and finishes with stronger evidence.
-
-## 1:25-1:45 Skin Switch
-
-Same replay, different presentation:
+If showing terminal:
 
 ```bash
-pnpm arena demo --skin oldschool-mmo
+pnpm arena live --view feed
 ```
 
-The engine and score do not change. Only the skin changes.
+## 1:10-1:35 Terminal Proof
 
-## 1:45-2:00 Close
+```bash
+pnpm arena demo --view split
+```
 
-Agent Arena turns coding-agent sessions into a replay humans can inspect.
+Say:
 
-It is fun enough to watch, but the point is serious: which agent result is
-safer to trust?
+The terminal produces the same replay model: Codex lane, Claude lane, center
+blocker, event feed, and outcome-weighted score.
+
+## 1:35-1:50 Scorecard
+
+Say:
+
+Raw activity does not win. Verified outcomes dominate.
+
+Codex wins because it clears checks, recovers, and receives the judge verdict.
+
+## 1:50-2:00 Close
+
+Agent Arena is a live Codex workflow companion.
+
+It turns agent work into a replay and scorecard so humans can decide which result
+is safer to trust.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { runBattle } from './engine'
+import { applyBattleEvent, createInitialBattle, finalizeBattle, runBattle } from './engine'
 import type { BattleEvent } from './types'
 
 describe('runBattle', () => {
@@ -67,5 +67,20 @@ describe('runBattle', () => {
 
     expect(result.agents.claude.score).toBeLessThan(0)
     expect(result.agents.claude.health).toBeLessThan(100)
+  })
+
+  it('uses the same reducer path for incremental live state and replay state', () => {
+    const events: BattleEvent[] = [
+      { id: 'c1', type: 'tool_used', agent: 'codex', at: 1, label: 'read files' },
+      { id: 'c2', type: 'test_passed', agent: 'codex', at: 2, label: 'tests passed' },
+      { id: 'k1', type: 'test_failed', agent: 'claude', at: 3, label: 'tests failed' },
+    ]
+
+    const replay = runBattle(events, 'Matched Race')
+    const live = createInitialBattle('Matched Race')
+    for (const event of events) applyBattleEvent(live, event)
+    finalizeBattle(live)
+
+    expect(live).toEqual(replay)
   })
 })

@@ -2,54 +2,48 @@
 
 ## Opening
 
-AI coding agents are getting good enough to run in parallel.
+AI coding agents are easy to launch in parallel.
 
-The new problem is review.
-
-Transcripts are noisy. Final diffs hide the story.
+The bottleneck is review.
 
 Agent Arena gives you the match replay.
 
+## What It Is
+
+A live Codex workflow companion.
+
+Terminal sessions emit normalized events.
+
+The Codex desktop browser shows the evolving replay and scorecard.
+
 ## Demo
 
+Show the web replay first:
+
+- Codex lane
+- Claude Code lane
+- center objective
+- event feed
+- scorecard
+- Codex Workflow panel
+
+Then show terminal proof:
+
 ```bash
-pnpm arena demo --skin moba
-pnpm arena demo --skin oldschool-mmo
+pnpm arena demo --view split
 ```
-
-Same Codex vs Claude replay.
-
-Same score.
-
-Different skin.
-
-## Codex App Angle
-
-This was built as a Codex workflow:
-
-- parallel Codex sessions
-- isolated worktree implementation
-- side-session research and demo prep
-- terminal test/build verification
-- replay preview in the Codex app browser
 
 ## Business Value
 
 Teams need to know which agent result is safer to trust.
 
-Agent Arena shows:
-
-- verified outcomes
-- blockers
-- regressions
-- recovery
-- delegation
-- final verdict
+Agent Arena shows verified outcomes, regressions, recovery, delegation, and final
+verdict.
 
 ## Close
 
-Codex built the project.
+The terminal generates the replay.
 
-Agent Arena visualizes agent work.
+The Codex desktop browser makes it reviewable.
 
-The result is fun to watch and useful to review.
+The scorecard explains which result to trust.

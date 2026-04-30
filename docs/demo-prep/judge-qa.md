@@ -9,13 +9,13 @@ It is a replay and review layer.
 It can show a `Matched Race` when task, repo, and start conditions are
 controlled. Otherwise it labels the run as `Demo Mode` or `Showcase Replay`.
 
-## Why game skins?
+## Why a game-like skin?
 
-Skins make agent work readable fast.
+The default arena skin makes agent work readable fast.
 
 The scorecard keeps the output serious.
 
-The skin changes presentation, not scoring.
+External skins can change presentation, not scoring.
 
 ## Why not just show logs?
 
@@ -76,8 +76,8 @@ into the same event stream.
 
 No.
 
-Official skins are generic. Branded/fan skins are local external skins and are
-not shipped with the app.
+The official skin is generic. Branded/fan skins are local external skins and
+are not shipped with the app.
 
 ## Do skins affect the winner?
 
@@ -87,8 +87,9 @@ The same event stream produces the same score.
 
 Skins only change presentation.
 
-## Why same replay with two skins?
+## Why support external skins?
 
-It proves skins are presentation only.
+They make the same trusted replay more fun to demo without changing the trusted
+event stream.
 
 Trust comes from the event stream and scorecard, not the visual style.

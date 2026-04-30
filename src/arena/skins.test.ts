@@ -5,20 +5,23 @@ import { describe, expect, it } from 'vitest'
 import { describeEventForSkin, getSkin } from './skins'
 
 describe('skins', () => {
-  it('uses moba as the default skin', () => {
-    expect(getSkin().id).toBe('moba')
+  it('uses default as the built-in official skin', () => {
+    expect(getSkin().id).toBe('default')
+    expect(getSkin('default').id).toBe('default')
   })
 
-  it('uses different presentation for the same event stream', () => {
-    expect(describeEventForSkin('test_passed', getSkin('moba'))).toBe('objective secured')
-    expect(describeEventForSkin('test_passed', getSkin('oldschool-mmo'))).toBe('quest milestone')
+  it('keeps old built-in skin names as compatibility aliases', () => {
+    expect(getSkin('moba').id).toBe('default')
+    expect(getSkin('oldschool-mmo').id).toBe('default')
+    expect(describeEventForSkin('test_passed', getSkin('moba'))).toBe('check secured')
+    expect(describeEventForSkin('test_passed', getSkin('oldschool-mmo'))).toBe('check secured')
   })
 
-  it('falls back to moba when a local third-party skin is unavailable', () => {
+  it('falls back to default when a local third-party skin is unavailable', () => {
     const skin = getSkin('./themes/missing-skin')
 
-    expect(skin.id).toBe('moba')
-    expect(skin.warning).toContain('Falling back to moba')
+    expect(skin.id).toBe('default')
+    expect(skin.warning).toContain('Falling back to default')
   })
 
   it('loads presentation fields from a local skin manifest', () => {

@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "arena": "tsx src/cli/main.ts",
-    "export-demo": "tsx src/cli/main.ts export fixtures/codex-sample.log fixtures/claude-sample.log --out src/web/demoBattle.json --skin moba"
+    "demo:tmux-live": "bash scripts/tmux-live-demo.sh",
+    "export-demo": "tsx src/cli/main.ts export fixtures/codex-sample.log fixtures/claude-sample.log --out src/web/demoBattle.json --skin default"
   },
   "dependencies": {
     "react": "^19.2.5",

@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import type { AgentId, BattleEvent, BattleEventType, BattleState, JudgeVerdict } from './types'
 
@@ -34,6 +34,11 @@ export function loadEventsJsonl(path: string): BattleEvent[] {
 export function writeBattleJson(path: string, state: BattleState): void {
   mkdirSync(dirname(path), { recursive: true })
   writeFileSync(path, `${JSON.stringify(state, null, 2)}\n`, 'utf8')
+}
+
+export function appendEventJsonl(path: string, event: BattleEvent): void {
+  mkdirSync(dirname(path), { recursive: true })
+  appendFileSync(path, `${JSON.stringify(event)}\n`, 'utf8')
 }
 
 function parseEventLine(line: string, lineNumber: number): BattleEvent {

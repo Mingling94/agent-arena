@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a terminal-first Agent Arena MVP that can run one deterministic Codex vs Claude Code arena match through first-class `moba` and `oldschool-mmo` skins, explain the score, replay event files, export JSON, and optionally show a lightweight web spectator.
+**Goal:** Build a terminal-first Agent Arena MVP that can run one deterministic Codex vs Claude Code arena match through one official `default` arena skin, explain the score, replay event files, export JSON, and optionally show a lightweight web spectator. Local external skins can reskin the same replay without changing scoring.
 
 **Architecture:** Create a renderer-agnostic TypeScript core under `src/arena/` with normalized events, battle state, generic scoring, skins, demo fixtures, and serialization. Add a Node CLI under `src/cli/` that uses the core and renders ANSI frames with skin-specific presentation. Keep the React app as a web replay viewer that imports the same core data model.
 
@@ -15,7 +15,7 @@
 - `src/arena/types.ts`: shared event, score, agent, judge, and battle-state types.
 - `src/arena/scoring.ts`: maps normalized events to score deltas, damage, highlights, and judge overrides.
 - `src/arena/engine.ts`: reduces event streams into battle snapshots and final summaries.
-- `src/arena/skins.ts`: built-in `moba` and `oldschool-mmo` skins, event vocabulary, glyphs, and observer labels.
+- `src/arena/skins.ts`: built-in `default` skin, compatibility aliases, event vocabulary, glyphs, and observer labels.
 - `src/arena/demoEvents.ts`: deterministic Codex-vs-Claude demo event stream.
 - `src/arena/io.ts`: JSONL parsing, JSON export, and fixture loading helpers.
 - `src/arena/transcriptParser.ts`: heuristic parser for simple Codex/Claude transcript fixtures.
@@ -47,10 +47,13 @@ The engine stays generic and outcome-weighted. Skins cannot control scoring,
 fairness labels, normalized event semantics, transcript parsing, or benchmark
 claims.
 
-Built-in official skins:
+Built-in official skin:
 
-- `moba`: default hackathon/demo skin.
-- `oldschool-mmo`: built-in alternate skin using the same event stream.
+- `default`: default hackathon/demo skin.
+
+Legacy `moba` and `oldschool-mmo` names remain compatibility aliases for
+`default`. Custom genre or fan skins should be loaded from local external skin
+directories, not shipped as official built-ins.
 
 Named-game skins are out of scope for the official app, docs, package, examples,
 screenshots, and repo assets. Third-party skins can later be loaded through a
@@ -66,8 +69,9 @@ Implementation impact:
 - Tasks 1-3 remain useful.
 - Task 3B implemented an intermediate `mode + theme` boundary. Task 3C replaces
   that with the final MVP `skin` boundary before replay and web tasks continue.
-- Task 4 and later must use `--skin moba` and `--skin oldschool-mmo` in commands
-  where applicable. `--mode` remains only as a compatibility alias.
+- Task 4 and later should use `pnpm arena demo` or `--skin default` in official
+  commands. `--mode`, `--skin default`, and `--skin default` remain only as
+  compatibility aliases.
 
 ---
 
@@ -589,7 +593,7 @@ git commit -m "feat: add terminal arena demo"
 
 ---
 
-### Task 3C: Collapse Modes And Themes Into Skins
+### Task 3C: Collapse Modes And Themes Into One Default Skin
 
 **Files:**
 - Create: `src/arena/skins.ts`
@@ -602,216 +606,42 @@ git commit -m "feat: add terminal arena demo"
 - Modify: `src/cli/formatScorecard.ts`
 - Modify: `src/cli/renderTerminal.test.ts`
 
-- [ ] **Step 1: Write skin boundary tests**
+Implementation notes:
 
-Create `src/arena/skins.test.ts`:
+- The official app ships one generic built-in skin: `default`.
+- `pnpm arena demo` and `pnpm arena demo --skin default` are the primary demo paths.
+- Legacy `--skin moba`, `--skin oldschool-mmo`, and `--mode <skin>` remain compatibility aliases only.
+- External local skin directories provide genre or fan presentation without changing scoring.
+- Missing local skins warn and fall back to `default`.
 
-```ts
-import { describe, expect, it } from 'vitest'
-import { describeEventForSkin, getSkin } from './skins'
+Default skin vocabulary:
 
-describe('skins', () => {
-  it('uses moba as the default skin', () => {
-    expect(getSkin().id).toBe('moba')
-  })
+- blocker = blocker
+- subagent = helper
+- score = score
+- momentum = momentum
+- feed = event feed
+- test/build pass = check secured
+- test failure = failed check
+- task completed = victory
 
-  it('uses different presentation for the same event stream', () => {
-    expect(describeEventForSkin('test_passed', getSkin('moba'))).toBe('objective secured')
-    expect(describeEventForSkin('test_passed', getSkin('oldschool-mmo'))).toBe('quest milestone')
-  })
-
-  it('falls back to moba when a local third-party skin is unavailable', () => {
-    const skin = getSkin('./themes/missing-skin')
-
-    expect(skin.id).toBe('moba')
-    expect(skin.warning).toContain('Falling back to moba')
-  })
-})
-```
-
-- [ ] **Step 2: Verify tests fail**
-
-Run:
+Verify:
 
 ```bash
 pnpm test
-```
-
-Expected: FAIL because `skins.ts` does not exist.
-
-- [ ] **Step 3: Implement built-in skins**
-
-Create `src/arena/skins.ts`:
-
-```ts
-import type { BattleEventType } from './types'
-
-export type SkinId = 'moba' | 'oldschool-mmo'
-
-export interface ArenaSkin {
-  id: SkinId | string
-  name: string
-  warning?: string
-  labels: {
-    blocker: string
-    assist: string
-    score: string
-    momentum: string
-    feed: string
-    finalResult: string
-  }
-  glyphs: {
-    codex: string
-    claude: string
-    blocker: string
-    assist: string
-    score: string
-  }
-  eventText: Partial<Record<BattleEventType, string>>
-}
-
-const SKINS: Record<SkinId, ArenaSkin> = {
-  moba: {
-    id: 'moba',
-    name: 'MOBA',
-    labels: {
-      blocker: 'objective',
-      assist: 'assist',
-      score: 'objective score',
-      momentum: 'tempo',
-      feed: 'observer feed',
-      finalResult: 'victory',
-    },
-    glyphs: { codex: 'C', claude: 'K', blocker: 'O', assist: 'A', score: '#' },
-    eventText: {
-      blocker_detected: 'objective contested',
-      tool_used: 'vision gained',
-      subagent_spawned: 'assist joined',
-      file_changed: 'tempo play',
-      fix_applied: 'objective captured',
-      test_failed: 'lost tempo',
-      test_passed: 'objective secured',
-      build_passed: 'objective secured',
-      task_completed: 'victory',
-    },
-  },
-  'oldschool-mmo': {
-    id: 'oldschool-mmo',
-    name: 'Oldschool MMO',
-    labels: {
-      blocker: 'encounter',
-      assist: 'party helper',
-      score: 'XP / reputation',
-      momentum: 'reputation',
-      feed: 'adventure log',
-      finalResult: 'quest complete',
-    },
-    glyphs: { codex: 'C', claude: 'K', blocker: 'E', assist: 'F', score: '*' },
-    eventText: {
-      blocker_detected: 'encounter discovered',
-      tool_used: 'exploration',
-      subagent_spawned: 'familiar joined',
-      file_changed: 'crafting',
-      fix_applied: 'encounter cleared',
-      test_failed: 'encounter setback',
-      test_passed: 'quest milestone',
-      build_passed: 'quest milestone',
-      task_completed: 'quest complete',
-    },
-  },
-}
-
-export function getSkin(skin: string = 'moba'): ArenaSkin {
-  if (skin === 'moba' || skin === 'oldschool-mmo') return SKINS[skin]
-
-  if (isPathLike(skin)) {
-    return {
-      ...SKINS.moba,
-      warning: `Could not load ${skin}. Falling back to moba.`,
-    }
-  }
-
-  throw new Error(`Unknown skin: ${skin}`)
-}
-
-export function describeEventForSkin(type: BattleEventType, skin: ArenaSkin): string {
-  return skin.eventText[type] ?? type.replaceAll('_', ' ')
-}
-
-function isPathLike(skin: string): boolean {
-  return skin.startsWith('.') || skin.startsWith('/') || skin.includes('/')
-}
-```
-
-- [ ] **Step 4: Remove intermediate mode/theme modules**
-
-Delete:
-
-```bash
-src/arena/modes.ts
-src/arena/themes.ts
-src/arena/modes.test.ts
-```
-
-- [ ] **Step 5: Update CLI option parsing**
-
-Update `src/cli/main.ts` so:
-
-- `pnpm arena demo` still works and defaults to `--skin moba`.
-- `pnpm arena demo --skin moba` works.
-- `pnpm arena demo --skin oldschool-mmo` works.
-- `pnpm arena scorecard --skin moba` works.
-- `pnpm arena demo --skin ./themes/missing-skin` works, warns, and falls back
-  to `moba`.
-- `--mode` remains a backward-compatible alias for `--skin`.
-- Unknown non-path skins exit nonzero with a useful error.
-
-Use:
-
-```ts
-const skinName = readOption(args, '--skin', readOption(args, '--mode', 'moba'))
-```
-
-- [ ] **Step 6: Update renderers**
-
-Update signatures:
-
-```ts
-renderTerminal(state, skin)
-formatScorecard(state, skin)
-```
-
-Output must include selected skin name and skin vocabulary:
-
-- `moba`: `objective score`, `tempo`, `assist`, `observer feed`.
-- `oldschool-mmo`: `XP / reputation`, `reputation`, `party helper`, `adventure log`.
-
-- [ ] **Step 7: Verify skin commands**
-
-Run:
-
-```bash
-pnpm test
-pnpm arena demo --skin moba
-pnpm arena demo --skin oldschool-mmo
-pnpm arena scorecard --skin moba
-pnpm arena demo --mode moba
+pnpm arena demo
+pnpm arena demo --skin default
+pnpm arena demo --view focus --agent codex
+pnpm arena demo --view feed
+pnpm arena scorecard
 pnpm arena demo --skin ./themes/missing-skin
 pnpm lint
 pnpm build
 ```
 
-Expected: all pass. Output vocabulary changes by skin. No named-game branding
-appears in official code, docs, filenames, package names, commands, or examples
-except legal/contributor notes that branded skins do not ship in core.
-
-- [ ] **Step 8: Commit**
-
-```bash
-git add src/arena/skins.ts src/arena/skins.test.ts src/cli/main.ts src/cli/renderTerminal.ts src/cli/formatScorecard.ts src/cli/renderTerminal.test.ts
-git rm src/arena/modes.ts src/arena/themes.ts src/arena/modes.test.ts
-git commit -m "feat: collapse modes into skins"
-```
+Expected: all pass. Official commands and docs promote the default skin only.
+Named-game or genre-heavy skins stay outside the official repo and load through
+the generic skin API.
 
 ---
 
@@ -1001,7 +831,7 @@ if (command === 'demo') {
 
 function fail(message: string): never {
   console.error(message)
-  console.error('Usage: pnpm arena demo --skin moba | scorecard --skin moba | replay --events fixtures/demo-events.jsonl --skin moba | replay codex.log claude.log --skin moba | export codex.log claude.log --out battle.json --skin moba')
+  console.error('Usage: pnpm arena demo --skin default | scorecard --skin default | replay --events fixtures/demo-events.jsonl --skin default | replay codex.log claude.log --skin default | export codex.log claude.log --out battle.json --skin default')
   process.exit(1)
 }
 ```
@@ -1012,10 +842,10 @@ Run:
 
 ```bash
 pnpm test
-pnpm arena replay --events fixtures/demo-events.jsonl --skin moba
-pnpm arena replay --events fixtures/demo-events.jsonl --skin oldschool-mmo
-pnpm arena replay fixtures/codex-sample.log fixtures/claude-sample.log --skin moba
-pnpm arena export fixtures/codex-sample.log fixtures/claude-sample.log --out src/web/demoBattle.json --skin moba
+pnpm arena replay --events fixtures/demo-events.jsonl --skin default
+pnpm arena replay --events fixtures/demo-events.jsonl --skin default
+pnpm arena replay fixtures/codex-sample.log fixtures/claude-sample.log --skin default
+pnpm arena export fixtures/codex-sample.log fixtures/claude-sample.log --out src/web/demoBattle.json --skin default
 ```
 
 Expected: tests pass, replay commands render terminal output, and `src/web/demoBattle.json` is written.
@@ -1063,7 +893,7 @@ Run:
 pnpm test
 ```
 
-Expected: FAIL because `getSkin(path)` currently falls back to built-in `moba`
+Expected: FAIL because `getSkin(path)` currently falls back to built-in `default`
 instead of loading the manifest.
 
 - [ ] **Step 3: Implement manifest loading**
@@ -1077,7 +907,7 @@ Update `src/arena/skins.ts`:
   `labels`, object `glyphs`, and object `eventText`.
 - Return an `ArenaSkin` using manifest presentation fields only.
 - Ignore missing optional `assets` paths.
-- If the path is missing or invalid, warn and fall back to `moba`.
+- If the path is missing or invalid, warn and fall back to `default`.
 
 Mapping from manifest to internal labels:
 
@@ -1362,11 +1192,11 @@ Run:
 
 ```bash
 pnpm arena demo
-pnpm arena demo --skin moba
+pnpm arena demo --skin default
 ```
 
 Say: Agent Arena turns Codex and Claude Code work into a terminal-first
-MOBA-skinned match replay. The center shows the contested objective, each side
+Default arena match replay. The center shows the contested objective, each side
 shows objective score, tempo, and assists, and the observer feed explains every
 score change.
 
@@ -1387,7 +1217,7 @@ Run:
 
 ```bash
 pnpm arena replay --events fixtures/demo-events.jsonl
-pnpm arena replay --events fixtures/demo-events.jsonl --skin moba
+pnpm arena replay --events fixtures/demo-events.jsonl --skin default
 ```
 
 Say: The same engine can replay normalized events or parsed transcripts.

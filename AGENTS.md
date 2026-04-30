@@ -13,8 +13,10 @@ Community Codex Hackathon. Optimize for a reliable 2-minute live demo.
 - Build: `pnpm build`
 - Preview: `pnpm preview`
 - Test: `pnpm test`
-- Terminal demo: `pnpm arena demo --skin moba`
-- Alternate skin demo: `pnpm arena demo --skin oldschool-mmo`
+- Terminal demo: `pnpm arena demo`
+- Default skin demo: `pnpm arena demo --skin default`
+- Narrow terminal demo: `pnpm arena demo --view focus --agent codex`
+- Compact feed demo: `pnpm arena demo --view feed`
 
 ## Constraints
 
@@ -36,7 +38,7 @@ Community Codex Hackathon. Optimize for a reliable 2-minute live demo.
 - The terminal demo should immediately communicate Codex vs Claude Code.
 - Show agents, blockers, familiars, scores, and a recent event log.
 - Label `Demo Mode`, `Showcase Replay`, or `Matched Race` clearly.
-- Use built-in generic skins for official demos. Local external skins are
+- Use the built-in default skin for official demos. Local external skins are
   optional finishers and must stay outside the official app package.
 - README must include setup, run, and demo instructions.
 
@@ -48,7 +50,9 @@ Run:
 pnpm test
 pnpm lint
 pnpm build
-pnpm arena demo --skin moba
-pnpm arena demo --skin oldschool-mmo
-pnpm arena scorecard --skin moba
+pnpm arena demo
+pnpm arena demo --skin default
+pnpm arena demo --view focus --agent codex
+pnpm arena demo --view feed
+pnpm arena scorecard
 ```

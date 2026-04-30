@@ -12,9 +12,10 @@
 ## Commands
 
 ```bash
-cd /Users/ming/hackathon/bellevue-codex-2026/project/.worktrees/agent-arena-mvp
-pnpm arena demo --skin moba
-pnpm arena demo --skin oldschool-mmo
+cd /Users/ming/hackathon/bellevue-codex-2026/project
+pnpm arena demo
+pnpm arena demo --view focus --agent codex
+pnpm arena demo --view feed
 ```
 
 If a local external skin is available:
@@ -32,12 +33,13 @@ pnpm arena scorecard --skin ../external-skins/<local-skin>
 ## Shot Order
 
 1. Title / repo visible.
-2. Run `--skin moba`.
-3. Pause on turning point: blocker, helper, test pass.
-4. Pause on final scorecard.
-5. Run `--skin oldschool-mmo`.
-6. Optional local external skin finisher.
-7. End on final verdict.
+2. Run `pnpm arena demo`.
+3. Pause on the `ARENA VIEW`: lanes, center blocker, bars, helper row.
+4. Run `--view focus --agent codex` if the pane is narrow.
+5. Run `--view feed` as the compact fallback shot.
+6. Pause on final scorecard.
+7. Optional local external skin finisher.
+8. End on final verdict.
 
 ## Fallback
 

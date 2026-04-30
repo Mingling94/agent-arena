@@ -33,13 +33,15 @@ The bottleneck is shifting from generation to review.
 
 ## Demo Hook
 
-Same Codex vs Claude Code replay.
+One Codex vs Claude Code replay.
 
 Same scoring.
 
-Different skins.
+Clean default arena skin.
 
 Same verdict.
+
+Optional local skins can reskin the replay without changing trust.
 
 ## Product Boundary
 

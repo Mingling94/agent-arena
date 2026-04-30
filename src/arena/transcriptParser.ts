@@ -36,3 +36,16 @@ export function parseTranscript(agent: AgentId, input: string): BattleEvent[] {
       ]
     })
 }
+
+export function classifyTranscriptLine(line: string): Pick<BattleEvent, 'type' | 'label'> | null {
+  const trimmed = line.trim()
+  if (!trimmed) return null
+
+  const rule = RULES.find((candidate) => candidate.match(trimmed))
+  if (!rule) return null
+
+  return {
+    type: rule.type,
+    label: rule.label,
+  }
+}

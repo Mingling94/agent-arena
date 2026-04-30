@@ -1,81 +1,88 @@
 # Final Runbook
 
-## Use This Worktree
+## Use This Repo
 
 ```bash
-cd /Users/ming/hackathon/bellevue-codex-2026/project/.worktrees/agent-arena-mvp
+cd /Users/ming/hackathon/bellevue-codex-2026/project
 ```
+
+## Pre-Demo Setup
+
+Use the shared dev server owned by the main Codex desktop session:
+
+```text
+http://127.0.0.1:5173/
+```
+
+Do not start another Vite server unless that URL is down and ownership is
+coordinated.
 
 ## Verify
 
 ```bash
 pnpm test
 pnpm build
+pnpm lint
 ```
 
-Known passing in side-session test:
+## Web-First Demo
 
-- 13 tests
-- Vite production build
+Open the Codex desktop app browser and show:
 
-## Core Demo
+- split replay
+- Codex focus
+- Claude Code focus
+- scorecard
+- event feed
+- Codex Workflow panel
+
+Say:
+
+The web view is the product surface. The terminal proves it is reproducible.
+
+## Terminal Proof
 
 ```bash
-pnpm arena demo --skin moba
-pnpm arena demo --skin oldschool-mmo
+pnpm arena demo --view split
+pnpm arena demo --view focus --agent codex
+pnpm arena live --view feed
+```
+
+## Live Mode Shape
+
+Reliable live-HUD shot:
+
+```bash
+pnpm arena live --view feed
+```
+
+Product-direction live stream:
+
+```bash
+pnpm demo:tmux-live
+AGENT_ARENA_MODE=race pnpm demo:tmux-live
+pnpm arena live --events .agent-arena/live/events.jsonl --view split
+pnpm arena emit --agent codex --type test_passed --label "tests passed"
+pnpm arena watch-log --agent codex --input .agent-arena/live/codex.log
 ```
 
 Say:
 
-Same replay. Same score. Different skin.
+Live mode uses explicit normalized JSONL events. It does not scrape private Codex
+Desktop logs.
 
-## Local External Skin Finisher
-
-```bash
-pnpm arena demo --skin ../external-skins/<local-skin>
-```
-
-Say:
-
-This is a local external skin loaded through the skin API. It is not an
-official bundled asset.
-
-## Scorecard
-
-```bash
-pnpm arena scorecard --skin ../external-skins/<local-skin>
-```
-
-Point out:
-
-- verified outcomes dominate
-- regressions penalize
-- judge verdict carries weight
-- Codex wins on evidence
-
-## Replay From Events
-
-```bash
-pnpm arena replay --events fixtures/demo-events.jsonl --skin oldschool-mmo
-```
-
-Use only if asked how non-demo input works.
-
-## Skin Text Status
-
-Skins change labels, glyphs, event feed text, highlights, and scorecard event
-phrasing.
-
-If asked:
-
-The same replay and score are reused. The skin only changes presentation text.
+Run the live HUD and Codex CLI in separate terminal tabs or tmux panes. Do not
+force both into one raw terminal stream.
 
 ## If Something Fails
 
-Show scorecard.
+Use terminal demo:
+
+```bash
+pnpm arena demo --view split
+pnpm arena scorecard
+```
 
 Say:
 
 The core is the normalized event stream and outcome-weighted scorecard.
-
-Animation and skins are presentation layers.

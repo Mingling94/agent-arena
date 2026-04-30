@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .worktrees
+.agent-arena/
 
 # Editor directories and files
 .vscode/*

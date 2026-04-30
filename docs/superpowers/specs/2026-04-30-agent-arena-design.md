@@ -19,8 +19,7 @@ benchmark rigor unless the inputs are controlled.
 
 - Run fully in the terminal, including inside iTerm and tmux.
 - Provide a flashier web spectator/replay path without making it a blocker.
-- Ship first-class built-in skins: `moba` as the default demo skin and
-  `oldschool-mmo` as the alternate built-in skin.
+- Ship one first-class built-in skin: `default`.
 - Separate skin, adapter, engine, and renderer responsibilities.
 - Support Codex vs Claude Code comparison as the headline demo.
 - Represent subagents as familiars or summons under their parent agent.
@@ -139,13 +138,17 @@ Agent Arena should be renderer-agnostic.
    labels, glyphs, colors, animation flavor, and scoreboard wording.
 4. The battle engine applies scoring, damage, status effects, assists, outcomes,
    fairness labels, and replay timing. It remains generic and skin-independent.
-5. The terminal renderer consumes battle state and skin presentation tokens to
-   render a compact arena.
+5. The shared spectator model turns battle state into renderer-neutral
+   presentation data such as sides, objective, callouts, missions, and victory
+   line.
+6. The terminal renderer consumes the spectator model and skin presentation
+   tokens to render a compact arena.
 7. The web spectator consumes the same exported battle state or event stream.
 8. The demo driver emits scripted normalized events.
 
 Terminal and web renderers must not parse agent transcripts directly. They only
-consume normalized events or battle state.
+consume normalized events, battle state, or the shared spectator model derived
+from battle state.
 
 ## Skin, Adapter, Engine, Renderer
 
@@ -162,17 +165,16 @@ The battle engine must remain generic and outcome-weighted. A skin cannot change
 scoring logic, fairness labels, normalized event semantics, transcript parsing,
 or benchmark claims.
 
-Official bundled skins:
+Official bundled skin:
 
-- `moba`
-- `oldschool-mmo`
+- `default`
 
 Third-party skins can later be loaded from a local path or package through a
 generic skin API. They are independently maintained and responsible for their
 own licensing.
 
 When a requested third-party skin is unavailable, Agent Arena should warn and
-fall back to the official `moba` skin so the hackathon demo remains reliable.
+fall back to the official `default` skin so the hackathon demo remains reliable.
 This fallback must be original and generic; it is not a branded replacement or
 bundled clone of any named game.
 
@@ -182,51 +184,31 @@ shipping them as official product assets. Missing optional asset files should no
 break rendering; the terminal renderer should fall back to manifest labels,
 colors, and glyphs.
 
-## Built-In Skins
+## Built-In Skin
 
-### `moba` Skin
+### `default` Skin
 
-`moba` is the default hackathon and demo skin. It uses original, legally clean
-terminology and assets while borrowing familiar structural patterns from
-competitive objective-control games.
+`default` is the official hackathon and demo skin. It uses original, legally
+clean arena terminology that can support terminal and web replay without
+looking like a named game.
 
-Coding activity maps to `moba` presentation vocabulary:
+Coding activity maps to `default` presentation vocabulary:
 
-- blocker = objective
-- subagent = assist
-- search/read/context gathering = vision
-- failed loop = lost tempo
-- test/build/typecheck passed = objective secured
-- regression = counterpush
+- blocker = blocker
+- subagent = helper
+- search/read/context gathering = context gathered
+- failed check = failed check
+- test/build/typecheck passed = check secured
+- resolved blocker = blocker resolved
 - task completed = victory
 
-The terminal UI should feel like an esports observer overlay: two sides, center
-objective/blocker, momentum bars, assists, recent event feed, and final
-scorecard.
+The terminal UI should feel like a compact arena replay: two sides, center
+blocker, momentum bars, helpers, recent event feed, and final scorecard.
 
-The `moba` skin must use generic terms only. It must not use Riot or League of
-Legends names, including champion, Summoner's Rift, Nexus, Baron, dragon,
-turret names, item names, ability names, icons, or visual trade dress.
-
-### `oldschool-mmo` Skin
-
-`oldschool-mmo` is a built-in alternate skin and should use the same event
-stream and scoring as `moba`. It is useful for longer sessions and
-replay/storytelling.
-
-Coding activity maps to `oldschool-mmo` presentation vocabulary:
-
-- blocker = encounter
-- subagent = familiar or party helper
-- search/read/context gathering = exploration
-- file edit = crafting
-- test/build/typecheck passed = quest milestone
-- score = XP or reputation
-- task completed = quest complete
-
-The `oldschool-mmo` skin must use generic old-school MMO language and original
-visuals. It must not use RuneScape or Jagex names, assets, fonts, items, icons,
-maps, music, or visual trade dress.
+Legacy `moba` and `oldschool-mmo` skin names may remain as compatibility
+aliases, but they should resolve to the official `default` skin in the core app.
+Named-game or genre-heavy skins should live outside the official repo as local
+third-party skins loaded through the generic skin API.
 
 ## Inputs
 
@@ -264,8 +246,26 @@ Example normalized events:
 
 ### Live Watching
 
-Watching a live tmux pane or terminal log file is a stretch goal. The design
-should not block it, but the hackathon build should not depend on it.
+The terminal renderer supports a live HUD command:
+
+```bash
+agent-arena live
+agent-arena live --events .agent-arena/live/events.jsonl --view split
+agent-arena live --events .agent-arena/live/events.jsonl --view focus --agent codex
+agent-arena live --events .agent-arena/live/events.jsonl --view feed
+agent-arena emit --agent codex --type test_passed --label "tests passed"
+agent-arena watch-log --agent codex --input .agent-arena/live/codex.log
+```
+
+Bare `agent-arena live` plays a deterministic event stream as live telemetry for
+a reliable demo. Passing `--events` tails a normalized JSONL event file and keeps
+the arena HUD in its own terminal surface. Interactive CLIs should run in a
+separate terminal tab or tmux pane because they repaint terminal state. Inside
+tmux, a command after `--` opens in a lower pane while the current pane remains
+the HUD. Automatic extraction from a raw Codex terminal transcript remains a
+larger adapter workstream. `watch-log` provides the first explicit local adapter:
+it tails a user-supplied log file and appends inferred normalized events into the
+live JSONL stream.
 
 ## Battle Model
 
@@ -287,9 +287,9 @@ Subagents appear as familiars. A familiar can add chip damage, shields, or
 status effects when it returns useful output. Failed or irrelevant delegated
 work should not receive meaningful score.
 
-In the `moba` skin, subagents are presented as assists. In the `oldschool-mmo`
-skin, subagents can be presented as familiars or party helpers. This vocabulary
-is skin-level copy, not scoring logic.
+In the official `default` skin, subagents are presented as helpers. Custom
+external skins can present them differently. This vocabulary is skin-level copy,
+not scoring logic.
 
 ## Scoring
 
@@ -371,9 +371,15 @@ Required display:
 The terminal renderer should use simple ANSI/Unicode graphics and avoid heavy
 dependencies. It should still be readable in plain terminal environments.
 
-For the `moba` skin, the display should prioritize a generic esports observer overlay:
-two sides, center objective/blocker, momentum bars, assists, recent event feed,
+For the `default` skin, the display should prioritize a generic arena observer
+overlay: two sides, center blocker, momentum bars, helpers, recent event feed,
 and final scorecard.
+
+Terminal view options:
+
+- `split`: default side-by-side arena view.
+- `focus`: narrow-pane view for one selected agent.
+- `feed`: compact event-feed and score summary fallback.
 
 ## Web Spectator
 
@@ -394,18 +400,21 @@ live streaming dashboard.
 Potential commands:
 
 ```bash
-agent-arena demo --skin moba
-agent-arena demo --skin oldschool-mmo
-agent-arena replay --events battle.jsonl --skin moba
-agent-arena replay --events battle.jsonl --skin oldschool-mmo
+agent-arena demo
+agent-arena demo --skin default
+agent-arena demo --view focus --agent codex
+agent-arena demo --view feed
+agent-arena replay --events battle.jsonl
+agent-arena replay --events battle.jsonl --skin default
 agent-arena replay --events battle.jsonl --skin ./themes/custom-skin
-agent-arena export codex.log claude.log --out battle.json --skin moba
+agent-arena export codex.log claude.log --out battle.json --skin default
 agent-arena web battle.json
 ```
 
-`moba` should be the default when `--skin` is omitted. Existing `agent-arena
-demo` and `pnpm arena demo` compatibility should remain. Existing `--mode`
-support can remain only as a backward-compatible alias for `--skin`.
+`default` should be used when `--skin` is omitted. Existing `agent-arena demo`
+and `pnpm arena demo` compatibility should remain. Existing `--mode` support
+can remain only as a backward-compatible alias for `--skin`. Legacy `--skin
+moba` and `--skin oldschool-mmo` can remain as aliases for `default`.
 
 Exact names can change during implementation, but the CLI should preserve the
 core paths: deterministic demo, transcript replay, exported web replay, and
@@ -413,7 +422,7 @@ skin selection.
 
 ## Legal And Product Boundary
 
-Agent Arena ships with original genre-inspired skins. Named-game skins are not
+Agent Arena ships with one original default arena skin. Named-game skins are not
 official product assets. Third-party skins may be loaded through a generic skin
 API and are independently responsible for licensing.
 
@@ -501,14 +510,14 @@ The four-hour build should prioritize:
 1. Define normalized event types and battle state.
 2. Implement deterministic demo event stream.
 3. Build terminal arena.
-4. Add skin boundary with `moba` as default.
-5. Make `agent-arena demo --skin moba` the primary demo.
+4. Add skin boundary with `default` as the official built-in skin.
+5. Make `agent-arena demo` the primary demo.
 6. Add explainable scorecard and highlight reel output.
 7. Add transcript/event replay.
 8. Add exportable battle JSON.
 9. Prepare GitHub-ready README, MIT license, and demo script.
 10. Record a 2-minute demo.
-11. Add `--skin oldschool-mmo` and minimal web replay if time remains.
+11. Add local external skin loading and minimal web replay if time remains.
 
 The terminal demo should be complete even if the web spectator is only a replay
 prototype.
@@ -543,7 +552,7 @@ prototype.
 ## Acceptance Criteria
 
 - `agent-arena demo` runs a complete Codex vs Claude Code battle in terminal.
-- `agent-arena demo --skin moba` runs a complete Codex vs Claude Code battle in
+- `agent-arena demo` runs a complete Codex vs Claude Code battle in
   terminal.
 - Skin labels and event vocabulary change based on selected skin.
 - Built-in skin names are legally clean and generic.

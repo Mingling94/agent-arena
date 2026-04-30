@@ -2,40 +2,30 @@
 
 ## Goal
 
-Show Agent Arena inside the Codex desktop workflow.
+Lead with Agent Arena inside the Codex desktop workflow.
 
 ## Shots
 
-1. Codex app project open.
-2. Main implementation thread visible.
-3. Side research/demo-prep thread visible if easy.
-4. Worktree path visible:
-   `project/.worktrees/agent-arena-mvp`
-5. Terminal command:
-   `pnpm arena demo --skin moba`
-6. Terminal command:
-   `pnpm arena demo --skin oldschool-mmo`
-7. Optional local external skin:
-   `pnpm arena demo --skin ../external-skins/<local-skin>`
-8. Web preview in Codex app browser:
-   `http://127.0.0.1:5173`
-9. Web replay scorecard.
-10. Codex Workflow panel.
+1. Codex desktop app browser open at `http://127.0.0.1:5173/`.
+2. Web replay split view: Codex lane, Claude lane, center objective.
+3. Click `Codex` focus.
+4. Click `Claude Code` focus.
+5. Scroll or point to scorecard and event feed.
+6. Point to Codex Workflow panel.
+7. Switch to terminal.
+8. Run `pnpm arena demo --view split`.
+9. Optional: run `pnpm arena live --view feed`.
+10. End on the web scorecard.
 
 ## Say
 
-Codex was not just the code generator.
+This is not a native Codex extension.
 
-It was the workspace: parallel sessions, worktrees, terminal verification, and
-browser review.
+It is a live event stream and replay surface built for the Codex desktop
+workflow.
 
 ## Cut If Short
 
-Show terminal replay.
+Skip terminal focus/feed views.
 
-Show scorecard.
-
-Say:
-
-The web view is a replay surface. The core product is the event stream and
-outcome-weighted scorecard.
+Keep web replay, scorecard, and one terminal proof command.

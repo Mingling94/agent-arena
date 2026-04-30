@@ -2,18 +2,22 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import type { BattleEventType } from './types'
 
-export type SkinId = 'moba' | 'oldschool-mmo'
+export type SkinId = 'default'
 
 export interface ArenaSkin {
   id: SkinId | string
   name: string
   warning?: string
+  description?: string
   labels: {
+    battleTitle?: string
     blocker: string
     assist: string
     score: string
+    health?: string
     momentum: string
     feed: string
+    scorecard?: string
     finalResult: string
   }
   glyphs: {
@@ -24,61 +28,44 @@ export interface ArenaSkin {
     score: string
   }
   eventText: Partial<Record<BattleEventType, string>>
+  presentation?: {
+    licenseNote?: string
+    palette?: Partial<Record<'background' | 'panel' | 'accent' | 'accentAlt' | 'codex' | 'claude' | 'positive' | 'negative' | 'muted', string>>
+  }
 }
 
 const SKINS: Record<SkinId, ArenaSkin> = {
-  moba: {
-    id: 'moba',
-    name: 'MOBA',
+  default: {
+    id: 'default',
+    name: 'Default Arena',
+    description: 'Official generic Agent Arena presentation.',
     labels: {
-      blocker: 'objective',
-      assist: 'assist',
-      score: 'objective score',
-      momentum: 'tempo',
-      feed: 'observer feed',
+      blocker: 'blocker',
+      assist: 'helper',
+      score: 'score',
+      momentum: 'momentum',
+      feed: 'event feed',
       finalResult: 'victory',
     },
-    glyphs: { codex: 'C', claude: 'K', blocker: 'O', assist: 'A', score: '#' },
+    glyphs: { codex: 'C', claude: 'K', blocker: 'B', assist: '+', score: '*' },
     eventText: {
-      blocker_detected: 'objective contested',
-      tool_used: 'vision gained',
-      subagent_spawned: 'assist joined',
-      file_changed: 'tempo play',
-      fix_applied: 'objective captured',
-      test_failed: 'lost tempo',
-      test_passed: 'objective secured',
-      build_passed: 'objective secured',
+      blocker_detected: 'blocker spotted',
+      tool_used: 'context gathered',
+      subagent_spawned: 'helper joined',
+      file_changed: 'file updated',
+      fix_applied: 'blocker resolved',
+      test_failed: 'failed check',
+      test_passed: 'check secured',
+      build_passed: 'check secured',
       task_completed: 'victory',
-    },
-  },
-  'oldschool-mmo': {
-    id: 'oldschool-mmo',
-    name: 'Oldschool MMO',
-    labels: {
-      blocker: 'encounter',
-      assist: 'party helper',
-      score: 'XP / reputation',
-      momentum: 'reputation',
-      feed: 'adventure log',
-      finalResult: 'quest complete',
-    },
-    glyphs: { codex: 'C', claude: 'K', blocker: 'E', assist: 'F', score: '*' },
-    eventText: {
-      blocker_detected: 'encounter discovered',
-      tool_used: 'exploration',
-      subagent_spawned: 'familiar joined',
-      file_changed: 'crafting',
-      fix_applied: 'encounter cleared',
-      test_failed: 'encounter setback',
-      test_passed: 'quest milestone',
-      build_passed: 'quest milestone',
-      task_completed: 'quest complete',
     },
   },
 }
 
-export function getSkin(skin: string = 'moba'): ArenaSkin {
-  if (skin === 'moba' || skin === 'oldschool-mmo') return SKINS[skin]
+export function getSkin(skin: string = 'default'): ArenaSkin {
+  if (skin === 'default' || skin === 'moba' || skin === 'oldschool-mmo') {
+    return SKINS.default
+  }
 
   if (isPathLike(skin)) {
     const manifestPath = resolveSkinManifestPath(skin)
@@ -135,8 +122,8 @@ function resolveExternalSidecarManifestPath(skin: string): string | null {
 
 function fallbackSkin(skin: string): ArenaSkin {
   return {
-    ...SKINS.moba,
-    warning: `Could not load ${skin}. Falling back to moba.`,
+    ...SKINS.default,
+    warning: `Could not load ${skin}. Falling back to default.`,
   }
 }
 
@@ -157,12 +144,16 @@ function loadSkinManifest(manifestPath: string): ArenaSkin {
   return {
     id: manifest.id,
     name: manifest.displayName,
+    description: readOptionalString(manifest, 'description'),
     labels: {
+      ...readOptionalLabel(labels, 'battleTitle'),
       score: readString(labels, 'score'),
+      ...readOptionalLabel(labels, 'health'),
       momentum: readString(labels, 'momentum'),
       blocker: readString(labels, 'blockers'),
       assist: readString(labels, 'subagents'),
       feed: readString(labels, 'eventLog'),
+      ...readOptionalLabel(labels, 'scorecard'),
       finalResult: readString(labels, 'winner'),
     },
     glyphs: {
@@ -173,7 +164,27 @@ function loadSkinManifest(manifestPath: string): ArenaSkin {
       score: readString(glyphs, 'majorHit'),
     },
     eventText: readEventText(manifest.eventText),
+    presentation: {
+      licenseNote: readOptionalString(manifest, 'licenseNote'),
+      palette: isRecord(manifest.palette) ? readPalette(manifest.palette) : undefined,
+    },
   }
+}
+
+function readOptionalLabel(record: Record<string, unknown>, key: 'battleTitle' | 'health' | 'scorecard'): Partial<ArenaSkin['labels']> {
+  const value = readOptionalString(record, key)
+  return value === undefined ? {} : { [key]: value }
+}
+
+function readPalette(palette: Record<string, unknown>): NonNullable<ArenaSkin['presentation']>['palette'] {
+  const keys = ['background', 'panel', 'accent', 'accentAlt', 'codex', 'claude', 'positive', 'negative', 'muted'] as const
+
+  return Object.fromEntries(
+    keys.flatMap((key) => {
+      const value = palette[key]
+      return typeof value === 'string' ? [[key, value]] : []
+    }),
+  )
 }
 
 function readEventText(eventText: Record<string, unknown>): Partial<Record<BattleEventType, string>> {
@@ -191,6 +202,12 @@ function readString(record: Record<string, unknown>, key: string): string {
   if (typeof value !== 'string') throw new Error(`Invalid skin manifest field: ${key}`)
 
   return value
+}
+
+function readOptionalString(record: Record<string, unknown>, key: string): string | undefined {
+  const value = record[key]
+
+  return typeof value === 'string' ? value : undefined
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
