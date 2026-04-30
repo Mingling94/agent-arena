@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a terminal-first Agent Arena MVP that can run a deterministic Codex vs Claude Code match, explain the score, replay event files, export JSON, and optionally show the same match in a lightweight web spectator.
+**Goal:** Build a terminal-first Agent Arena MVP that can run a deterministic Codex vs Claude Code match in first-class `moba` mode, explain the score, replay event files, export JSON, and optionally show alternate `mmo` mode plus a lightweight web spectator.
 
-**Architecture:** Create a renderer-agnostic TypeScript core under `src/arena/` with normalized events, battle state, scoring, demo fixtures, and serialization. Add a Node CLI under `src/cli/` that uses the core and renders ANSI frames. Keep the React app as a web replay viewer that imports the same core data model.
+**Architecture:** Create a renderer-agnostic TypeScript core under `src/arena/` with normalized events, battle state, scoring, modes, themes, demo fixtures, and serialization. Add a Node CLI under `src/cli/` that uses the core and renders ANSI frames with mode-specific vocabulary and theme presentation tokens. Keep the React app as a web replay viewer that imports the same core data model.
 
 **Tech Stack:** TypeScript, Vite, React, pnpm, Node CLI, Vitest for core tests, ANSI terminal output without heavy TUI dependencies.
 
@@ -15,6 +15,8 @@
 - `src/arena/types.ts`: shared event, score, agent, judge, and battle-state types.
 - `src/arena/scoring.ts`: maps normalized events to score deltas, damage, highlights, and judge overrides.
 - `src/arena/engine.ts`: reduces event streams into battle snapshots and final summaries.
+- `src/arena/modes.ts`: built-in `moba` and `mmo` game modes, event vocabulary, and observer labels.
+- `src/arena/themes.ts`: built-in `terminal`, `moba-default`, and `mmo-default` theme tokens plus theme resolution boundary.
 - `src/arena/demoEvents.ts`: deterministic Codex-vs-Claude demo event stream.
 - `src/arena/io.ts`: JSONL parsing, JSON export, and fixture loading helpers.
 - `src/arena/transcriptParser.ts`: heuristic parser for simple Codex/Claude transcript fixtures.
@@ -29,6 +31,49 @@
 - `docs/demo-script.md`: 2-minute pre-recorded demo script.
 - `README.md`: update with CLI commands, judging framing, setup, and demo instructions.
 - `package.json`: add CLI bin, scripts, and test/dev dependencies.
+
+## Pivot Update: Mode + Theme Boundary
+
+This plan originally described one generic RPG-like terminal battle. The product
+pivot changes the abstraction:
+
+- `mode`: game metaphor and event vocabulary.
+- `theme`: visual styling, glyphs, colors, sprites, frame style, status names,
+  and event presentation text.
+- `adapter`: transcript/event ingestion.
+- `engine`: normalized battle state, scoring, timing, fairness labels, and
+  outcomes.
+- `renderer`: terminal/web rendering.
+
+The engine is mode-aware but not theme-specific. Themes cannot control scoring,
+fairness labels, normalized event semantics, or benchmark claims.
+
+Built-in official modes:
+
+- `moba`: default hackathon/demo mode.
+- `mmo`: built-in alternate mode after `moba` if time permits.
+
+Built-in official themes:
+
+- `terminal`
+- `moba-default`
+- `mmo-default`
+
+`moba-default` is the official fallback theme for `moba`. If a requested local
+third-party MOBA theme cannot be loaded, the CLI should warn and continue with
+`moba-default` so the hackathon demo remains reliable.
+
+Named-game skins are out of scope for the official app, docs, package, examples,
+screenshots, and repo assets. Third-party themes can later be loaded through a
+generic theme API and are independently responsible for licensing.
+
+Implementation impact:
+
+- Tasks 1-3 were completed before the pivot and remain useful.
+- Add Task 3B next to retrofit `mode + theme` into the core/CLI before replay
+  and web tasks.
+- Task 4 and later must use `--mode moba` and `--mode mmo` in commands where
+  applicable.
 
 ---
 
@@ -553,6 +598,293 @@ git commit -m "feat: add terminal arena demo"
 
 ---
 
+### Task 3B: Mode And Theme Boundary
+
+**Files:**
+- Create: `src/arena/modes.ts`
+- Create: `src/arena/themes.ts`
+- Create: `src/arena/modes.test.ts`
+- Modify: `src/cli/main.ts`
+- Modify: `src/cli/renderTerminal.ts`
+- Modify: `src/cli/formatScorecard.ts`
+
+- [ ] **Step 1: Write mode/theme tests**
+
+Create `src/arena/modes.test.ts`:
+
+```ts
+import { describe, expect, it } from 'vitest'
+import { getMode } from './modes'
+import { getTheme } from './themes'
+
+describe('modes', () => {
+  it('uses moba as the default mode', () => {
+    expect(getMode().id).toBe('moba')
+  })
+
+  it('uses different vocabulary for moba and mmo', () => {
+    expect(getMode('moba').labels.finalObjective).toBe('final objective')
+    expect(getMode('mmo').labels.finalObjective).toBe('quest completion')
+  })
+})
+
+describe('themes', () => {
+  it('resolves bundled legally clean themes', () => {
+    expect(getTheme('terminal').id).toBe('terminal')
+    expect(getTheme('moba-default').id).toBe('moba-default')
+    expect(getTheme('mmo-default').id).toBe('mmo-default')
+  })
+
+  it('falls back to moba-default when a local third-party moba theme is unavailable', () => {
+    const theme = getTheme('./themes/missing-theme', 'moba')
+
+    expect(theme.id).toBe('moba-default')
+    expect(theme.warning).toContain('Falling back to moba-default')
+  })
+})
+```
+
+- [ ] **Step 2: Verify tests fail**
+
+Run:
+
+```bash
+pnpm test
+```
+
+Expected: FAIL because `modes.ts` and `themes.ts` do not exist.
+
+- [ ] **Step 3: Implement built-in modes**
+
+Create `src/arena/modes.ts`:
+
+```ts
+import type { BattleEventType } from './types'
+
+export type GameModeId = 'moba' | 'mmo'
+
+export interface GameMode {
+  id: GameModeId
+  name: string
+  labels: {
+    objective: string
+    blocker: string
+    finalObjective: string
+    assist: string
+    momentum: string
+    score: string
+    feed: string
+  }
+  eventVocabulary: Partial<Record<BattleEventType, string>>
+}
+
+const MODES: Record<GameModeId, GameMode> = {
+  moba: {
+    id: 'moba',
+    name: 'MOBA Mode',
+    labels: {
+      objective: 'objective',
+      blocker: 'enemy objective',
+      finalObjective: 'final objective',
+      assist: 'assist',
+      momentum: 'tempo',
+      score: 'objective score',
+      feed: 'observer feed',
+    },
+    eventVocabulary: {
+      task_completed: 'final objective destroyed',
+      test_passed: 'major objective secured',
+      build_passed: 'base gate cleared',
+      test_failed: 'enemy objective appeared',
+      blocker_detected: 'blocker contested',
+      subagent_spawned: 'assist joined',
+      tool_used: 'vision gained',
+      file_changed: 'lane pressure applied',
+      fix_applied: 'objective captured',
+      judge_verdict: 'official ruling',
+    },
+  },
+  mmo: {
+    id: 'mmo',
+    name: 'MMO Mode',
+    labels: {
+      objective: 'quest',
+      blocker: 'encounter',
+      finalObjective: 'quest completion',
+      assist: 'party member',
+      momentum: 'reputation',
+      score: 'XP',
+      feed: 'adventure log',
+    },
+    eventVocabulary: {
+      task_completed: 'quest completed',
+      test_passed: 'encounter cleared',
+      build_passed: 'raid gate opened',
+      test_failed: 'boss enraged',
+      blocker_detected: 'dungeon hazard found',
+      subagent_spawned: 'party member joined',
+      tool_used: 'exploration',
+      file_changed: 'gear crafted',
+      fix_applied: 'boss phase cleared',
+      judge_verdict: 'guild verdict',
+    },
+  },
+}
+
+export function getMode(mode: string = 'moba'): GameMode {
+  if (mode === 'moba' || mode === 'mmo') return MODES[mode]
+  throw new Error(`Unknown mode: ${mode}`)
+}
+
+export function describeEventForMode(type: BattleEventType, mode: GameMode): string {
+  return mode.eventVocabulary[type] ?? type.replaceAll('_', ' ')
+}
+```
+
+- [ ] **Step 4: Implement bundled themes**
+
+Create `src/arena/themes.ts`:
+
+```ts
+export type ThemeId = 'terminal' | 'moba-default' | 'mmo-default'
+
+export interface ArenaTheme {
+  id: ThemeId | string
+  name: string
+  warning?: string
+  colors: {
+    codex: string
+    claude: string
+    accent: string
+    danger: string
+  }
+  glyphs: {
+    codex: string
+    claude: string
+    blocker: string
+    assist: string
+    objective: string
+  }
+  frame: {
+    horizontal: string
+    vertical: string
+    corner: string
+  }
+}
+
+const THEMES: Record<ThemeId, ArenaTheme> = {
+  terminal: {
+    id: 'terminal',
+    name: 'Terminal',
+    colors: { codex: 'cyan', claude: 'magenta', accent: 'white', danger: 'red' },
+    glyphs: { codex: 'C', claude: 'K', blocker: 'X', assist: '+', objective: '*' },
+    frame: { horizontal: '=', vertical: '|', corner: '+' },
+  },
+  'moba-default': {
+    id: 'moba-default',
+    name: 'MOBA Default',
+    colors: { codex: 'blue', claude: 'red', accent: 'yellow', danger: 'red' },
+    glyphs: { codex: 'C', claude: 'K', blocker: 'O', assist: 'A', objective: '#' },
+    frame: { horizontal: '=', vertical: '|', corner: '+' },
+  },
+  'mmo-default': {
+    id: 'mmo-default',
+    name: 'MMO Default',
+    colors: { codex: 'green', claude: 'purple', accent: 'gold', danger: 'red' },
+    glyphs: { codex: 'C', claude: 'K', blocker: 'B', assist: 'P', objective: 'Q' },
+    frame: { horizontal: '-', vertical: '|', corner: '+' },
+  },
+}
+
+export function getTheme(theme: string = 'moba-default', mode: string = 'moba'): ArenaTheme {
+  if (theme === 'terminal' || theme === 'moba-default' || theme === 'mmo-default') {
+    return THEMES[theme]
+  }
+
+  if (theme.startsWith('.') || theme.startsWith('/')) {
+    if (mode === 'moba') {
+      return {
+        ...THEMES['moba-default'],
+        warning: `Could not load ${theme}. Falling back to moba-default.`,
+      }
+    }
+
+    return {
+      ...THEMES['mmo-default'],
+      warning: `Could not load ${theme}. Falling back to mmo-default.`,
+    }
+  }
+
+  throw new Error(`Unknown theme: ${theme}`)
+}
+```
+
+- [ ] **Step 5: Add CLI mode/theme parsing**
+
+Update `src/cli/main.ts` so:
+
+- `pnpm arena demo` still works and defaults to `moba`.
+- `pnpm arena demo --mode moba` works.
+- `pnpm arena demo --mode mmo` works.
+- `pnpm arena scorecard --mode moba` works.
+- `--theme terminal`, `--theme moba-default`, `--theme mmo-default`, and local
+  path-looking themes are accepted.
+- unavailable local path-looking themes warn and fall back to the built-in theme
+  for the selected mode, especially `moba-default` for `moba`.
+- Unknown modes/themes exit nonzero with a useful error.
+
+Use a small parser function:
+
+```ts
+function readOption(args: string[], name: string, fallback: string): string {
+  const index = args.indexOf(name)
+  return index >= 0 ? (args[index + 1] ?? fallback) : fallback
+}
+```
+
+- [ ] **Step 6: Pass mode/theme into renderers**
+
+Update `renderTerminal` and `formatScorecard` signatures:
+
+```ts
+renderTerminal(state, mode, theme)
+formatScorecard(state, mode)
+```
+
+The terminal output must include:
+
+- selected mode name
+- selected theme name
+- mode vocabulary for the center blocker/objective label
+- `moba` wording such as `objective score`, `tempo`, `assist`, and `observer feed`
+- `mmo` wording such as `XP`, `reputation`, `party member`, and `adventure log`
+
+- [ ] **Step 7: Verify mode commands**
+
+Run:
+
+```bash
+pnpm test
+pnpm arena demo --mode moba
+pnpm arena demo --mode mmo
+pnpm arena scorecard --mode moba
+pnpm arena demo --mode moba --theme terminal
+pnpm lint
+pnpm build
+```
+
+Expected: all pass. Output vocabulary changes between `moba` and `mmo`. No
+named-game branding appears.
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add src/arena/modes.ts src/arena/themes.ts src/arena/modes.test.ts src/cli/main.ts src/cli/renderTerminal.ts src/cli/formatScorecard.ts
+git commit -m "feat: add mode and theme boundary"
+```
+
+---
+
 ### Task 4: JSONL Replay, Transcript Fixtures, And Export
 
 **Files:**
@@ -739,7 +1071,7 @@ if (command === 'demo') {
 
 function fail(message: string): never {
   console.error(message)
-  console.error('Usage: pnpm arena demo | scorecard | replay --events fixtures/demo-events.jsonl | replay codex.log claude.log | export codex.log claude.log --out battle.json')
+  console.error('Usage: pnpm arena demo --mode moba | scorecard --mode moba | replay --events fixtures/demo-events.jsonl --mode moba | replay codex.log claude.log --mode moba | export codex.log claude.log --out battle.json --mode moba')
   process.exit(1)
 }
 ```
@@ -750,9 +1082,10 @@ Run:
 
 ```bash
 pnpm test
-pnpm arena replay --events fixtures/demo-events.jsonl
-pnpm arena replay fixtures/codex-sample.log fixtures/claude-sample.log
-pnpm arena export fixtures/codex-sample.log fixtures/claude-sample.log --out src/web/demoBattle.json
+pnpm arena replay --events fixtures/demo-events.jsonl --mode moba
+pnpm arena replay --events fixtures/demo-events.jsonl --mode mmo
+pnpm arena replay fixtures/codex-sample.log fixtures/claude-sample.log --mode moba
+pnpm arena export fixtures/codex-sample.log fixtures/claude-sample.log --out src/web/demoBattle.json --mode moba
 ```
 
 Expected: tests pass, replay commands render terminal output, and `src/web/demoBattle.json` is written.
@@ -1009,11 +1342,13 @@ Run:
 
 ```bash
 pnpm arena demo
+pnpm arena demo --mode moba
 ```
 
-Say: Agent Arena turns Codex and Claude Code work into a terminal-first match
-replay. The center shows blockers, each side shows score and familiars, and the
-log explains every score change.
+Say: Agent Arena turns Codex and Claude Code work into a terminal-first
+MOBA-mode match replay. The center shows the contested objective, each side
+shows objective score, tempo, and assists, and the observer feed explains every
+score change.
 
 ## 0:55-1:25 Explainable Scorecard
 
@@ -1032,6 +1367,7 @@ Run:
 
 ```bash
 pnpm arena replay --events fixtures/demo-events.jsonl
+pnpm arena replay --events fixtures/demo-events.jsonl --mode moba
 ```
 
 Say: The same engine can replay normalized events or parsed transcripts.
@@ -1107,6 +1443,7 @@ git push
 Spec coverage:
 
 - Terminal-first demo: Tasks 3 and 6.
+- Mode/theme boundary: Task 3B.
 - Renderer-agnostic event model: Tasks 1 and 2.
 - Outcome-weighted scorecard: Tasks 2 and 3.
 - Custom judge events: Task 2.
