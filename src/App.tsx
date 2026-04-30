@@ -341,7 +341,6 @@ function App() {
   const latestCallout = spectator.callouts.at(-1) ?? spectator.objective.detail
   const currentReplayEvent = demoEvents[Math.max(0, replayEventCount - 1)]
   const replayProgress = demoEvents.length === 0 ? 100 : (replayEventCount / demoEvents.length) * 100
-  const recentEventLines = battleState.log.slice(-3).reverse()
   const visibleDeltas =
     effectiveViewMode === 'split'
       ? battleState.deltas
@@ -471,7 +470,7 @@ function App() {
             <p className="observer-bar__summary">
               {isLiveSession
                 ? 'Live Session · 1P Codex'
-                : 'Live and replayable battle views for coding-agent sessions.'}
+                : 'Deterministic coding-agent battle replay.'}
             </p>
           </div>
           <div className="observer-actions">
@@ -566,11 +565,10 @@ function App() {
               <section className="tactical-objective" aria-label="Animated center objective">
                 <p className="eyebrow">{objectiveHeading}</p>
                 <h2>{spectator.title}</h2>
-                <p>{spectator.objective.label}</p>
                 <strong>{spectator.victoryLine}</strong>
               </section>
               <div className="mission-stack" aria-label="Mission objectives">
-                <p className="eyebrow">Active Missions</p>
+                <p className="eyebrow">Missions</p>
                 {spectator.missions.slice(0, 2).map((mission) => (
                   <strong key={mission}>{mission}</strong>
                 ))}
@@ -611,33 +609,9 @@ function App() {
                 <div className="replay-progress__track" aria-hidden="true">
                   <span style={{ width: `${replayProgress}%` }} />
                 </div>
-                <div
-                  className="replay-milestones"
-                  style={{ '--event-count': demoEvents.length } as CSSProperties}
-                  aria-hidden="true"
-                >
-                  {demoEvents.map((event, index) => (
-                    <span
-                      className={[
-                        index < replayEventCount ? 'is-complete' : '',
-                        index + 1 === replayEventCount ? 'is-current' : '',
-                        event.type.includes('passed') || event.type === 'build_passed' ? 'is-check' : '',
-                      ].filter(Boolean).join(' ')}
-                      key={event.id}
-                    />
-                  ))}
-                </div>
               </div>
-              <div className={`trust-badge trust-badge--${evalModel.trustLabel.toLowerCase().replace(' ', '-')}`}>
-                <span>Trust</span>
-                <strong>{evalModel.trustLabel}</strong>
-              </div>
-              <div className="replay-feed" aria-label="Recent replay events">
-                {recentEventLines.length > 0 ? (
-                  recentEventLines.map((entry) => <span key={entry}>{entry}</span>)
-                ) : (
-                  <span>Codex is ready to receive the demo prompt.</span>
-                )}
+              <div className={`trust-chip trust-chip--${evalModel.trustLabel.toLowerCase().replace(' ', '-')}`}>
+                {evalModel.trustLabel}
               </div>
             </div>
           ) : null}
@@ -785,11 +759,11 @@ function App() {
           </div>
 
           <div className="codex-desktop-pane" aria-label="Codex desktop workflow">
-            <span>Codex desktop workflow</span>
+            <span>Codex workflow</span>
             <strong>
               {runtimeMode === 'demo-replay'
-                ? `Prompt pane: replaying ${currentReplayEvent?.label ?? 'mission setup'} through the shared reducer`
-                : 'Live pane: watching normalized Codex session events'}
+                ? `Replaying ${currentReplayEvent?.label ?? 'mission setup'}`
+                : 'Watching normalized live events'}
             </strong>
           </div>
 
