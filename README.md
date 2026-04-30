@@ -36,6 +36,11 @@ Agent Arena ships with original genre-inspired skins. Named-game skins are not
 official product assets. Third-party skins may be loaded through a generic skin
 API and are independently responsible for licensing.
 
+## Demo Prep
+
+See [docs/demo-prep/](docs/demo-prep/) for the 2-minute script, runbook,
+recording checklist, judge Q&A, and pitch snippets.
+
 ## Design Spec
 
 See [docs/superpowers/specs/2026-04-30-agent-arena-design.md](docs/superpowers/specs/2026-04-30-agent-arena-design.md).
