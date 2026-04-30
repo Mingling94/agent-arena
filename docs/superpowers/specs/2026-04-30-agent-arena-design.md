@@ -26,6 +26,73 @@ benchmark rigor unless the inputs are controlled.
 - Include deterministic demo mode so the hackathon pitch is reliable.
 - Be ready for public GitHub release under an open-source license.
 
+## Contest Strategy
+
+The Bellevue Community Codex Hackathon judging rubric is evenly weighted:
+
+- 25% impact
+- 25% quality and readiness
+- 25% creative use of the Codex app
+- 25% demo and pitch
+
+Submissions are due at 2:30 PM. The pitch includes a 2-minute demo, live or
+pre-recorded, followed by 3 minutes of judge Q&A. Agent Arena should therefore
+optimize for a short, controlled story rather than a broad feature set.
+
+### Impact
+
+The impact story is that coding-agent work is hard to inspect. Agent Arena makes
+agent progress, failures, recovery, verification, and final outcomes visible to
+humans. This helps developers, teams, and evaluators understand what happened in
+an AI coding session instead of only seeing a final diff.
+
+The demo should say: "When agents are doing real work, we need a match replay,
+not just a transcript."
+
+### Quality And Readiness
+
+Readiness should be demonstrated through a small set of reliable commands:
+
+- install
+- run terminal demo
+- replay an event file
+- export or open a web replay if available
+- build/lint
+
+The repository should include fixtures, deterministic demo data, clear README
+steps, and an MIT license. Avoid features that cannot be shown reliably in two
+minutes.
+
+### Creative Use Of Codex
+
+The project must visibly use Codex as more than a generic code generator. Good
+evidence:
+
+- The repository contains planning docs produced with Codex.
+- The demo shows Codex as one side of the match.
+- The scoring highlights Codex recovery, verification, and subagent/familiar
+  use.
+- The pitch can explain how Codex helped plan, build, test, and prepare the
+  project during the hackathon.
+
+The Codex-favorable demo should remain honest: Codex wins because it clears
+checks and recovers faster, not because the scoreboard is arbitrary.
+
+### Demo And Pitch
+
+Pre-recording is preferred unless the live version is already proven stable.
+The 2-minute demo should be scripted as:
+
+1. Problem: transcripts hide the real story of agent work.
+2. Input: a Codex vs Claude Code event replay for the same task.
+3. Action: Agent Arena scores outcomes, detects blockers, and shows turning
+   points in terminal.
+4. Result: Codex wins on verified progress and recovery.
+5. Bonus: the same replay can be exported to a web spectator view if available.
+
+The recording should show the terminal demo first. The web spectator is a
+bonus shot, not the dependency for the pitch.
+
 ## Non-Goals
 
 - A full scientific benchmark suite.
@@ -161,6 +228,26 @@ Negative events:
 Raw activity cannot win by itself. The score should make correctness and
 verified progress dominate.
 
+## Custom Judges
+
+Agent Arena should treat project-supplied judging as a first-class concept. A
+generic score can make a replay fun, but real software-development evaluation
+depends on the repository, task, acceptance tests, and maintainer expectations.
+
+The MVP should support a simple judge manifest or event file that can add
+project-specific outcomes:
+
+- required commands, such as `pnpm test`, `pnpm build`, or `cargo test`
+- hidden or maintainer-provided checks when available
+- task-specific acceptance criteria
+- manual judge notes
+- severity weights for regressions, security issues, performance, or UX
+- final verdict labels such as `accepted`, `partial`, `regressed`, or `failed`
+
+In the battle UI, project-supplied judge events should be visibly distinct from
+heuristic activity scoring. A custom judge verdict should be able to override
+generic activity points.
+
 ## Labels And Fairness
 
 The UI must show one of these comparison labels:
@@ -224,6 +311,30 @@ The adjacent space is active. Existing tools emphasize observability, session
 management, dashboards, and serious side-by-side comparison more than
 terminal-native game visualization.
 
+Software-development evaluation is also a mature field. The important lesson
+for Agent Arena is that credible scoring needs task-specific judges, not only
+generic telemetry:
+
+- [SWE-bench](https://www.swebench.com/) evaluates agents on real GitHub issues
+  by checking whether a submitted patch passes tests. It popularized
+  issue-resolution as a software-agent benchmark.
+- [SWE-bench Verified](https://openai.com/index/introducing-swe-bench-verified/)
+  added expert human review to filter tasks for clearer issue descriptions and
+  appropriate tests.
+- [OpenAI SWE-Lancer](https://openai.com/index/swe-lancer/) uses real freelance
+  software-engineering tasks. Independent coding tasks are graded with
+  end-to-end tests, while managerial decisions are graded against the original
+  engineering manager's choices.
+- [Terminal-Bench](https://www.tbench.ai/) evaluates agents on terminal-based
+  tasks, which is directly relevant to Agent Arena's terminal-first focus.
+- OpenAI's 2026 note on why it no longer relies on SWE-bench Verified highlights
+  benchmark pitfalls: contamination, underspecified tasks, and tests that check
+  behavior not described in the prompt. Agent Arena should avoid overclaiming
+  benchmark rigor unless the judging inputs are controlled.
+- Recent benchmark work such as SWE-CI, SWE-EVO, SWE-Bench Mobile, and
+  ProjDevBench points toward repository-level, long-horizon, and domain-specific
+  evaluation instead of one-size-fits-all pass/fail scoring.
+
 Closest adjacent products and references:
 
 - [CodeAgentSwarm](https://www.codeagentswarm.com/en) manages multiple Claude
@@ -271,9 +382,11 @@ The four-hour build should prioritize:
 2. Implement deterministic demo event stream.
 3. Build terminal arena.
 4. Add transcript/event replay.
-5. Add exportable battle JSON.
-6. Add minimal web replay if time remains.
+5. Add explainable scorecard and highlight reel output.
+6. Add exportable battle JSON.
 7. Prepare GitHub-ready README, MIT license, and demo script.
+8. Record a 2-minute demo.
+9. Add minimal web replay if time remains.
 
 The terminal demo should be complete even if the web spectator is only a replay
 prototype.
