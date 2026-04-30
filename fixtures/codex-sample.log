@@ -1,0 +1,6 @@
+pnpm test
+✓ tests passed
+updated src/arena/io.ts
+spawned transcript parser helper
+pnpm build
+build passed

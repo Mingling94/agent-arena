@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "arena": "tsx src/cli/main.ts",
+    "export-demo": "tsx src/cli/main.ts export fixtures/codex-sample.log fixtures/claude-sample.log --out src/web/demoBattle.json --skin moba"
   },
   "dependencies": {
     "react": "^19.2.5",
@@ -25,6 +28,8 @@
     "globals": "^17.5.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.2",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "tsx": "^4.20.6",
+    "vitest": "^4.0.15"
   }
 }
