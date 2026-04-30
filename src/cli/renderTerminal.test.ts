@@ -1,22 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import { demoEvents } from '../arena/demoEvents'
 import { runBattle } from '../arena/engine'
-import { getMode } from '../arena/modes'
-import { getTheme } from '../arena/themes'
+import { getSkin } from '../arena/skins'
 import { formatScorecard } from './formatScorecard'
 import { renderTerminal } from './renderTerminal'
 
 describe('terminal arena demo', () => {
   it('renders the deterministic demo with both agents and Codex as winner', () => {
     const state = runBattle(demoEvents, 'Demo Mode')
-    const mode = getMode('moba')
-    const theme = getTheme('moba-default', mode.id)
-    const output = renderTerminal(state, mode, theme)
+    const output = renderTerminal(state, getSkin('moba'))
 
     expect(state.winner).toBe('codex')
     expect(output).toContain('AGENT ARENA')
-    expect(output).toContain('Mode: MOBA Mode')
-    expect(output).toContain('Theme: MOBA Default')
+    expect(output).toContain('Skin: MOBA')
     expect(output).toContain('Winner: Codex')
     expect(output).toContain('Codex')
     expect(output).toContain('Claude Code')
@@ -29,25 +25,22 @@ describe('terminal arena demo', () => {
     expect(output).toContain('Codex landed a major hit')
   })
 
-  it('renders alternate mmo vocabulary', () => {
+  it('renders alternate oldschool mmo vocabulary', () => {
     const state = runBattle(demoEvents, 'Demo Mode')
-    const mode = getMode('mmo')
-    const theme = getTheme('mmo-default', mode.id)
-    const output = renderTerminal(state, mode, theme)
+    const output = renderTerminal(state, getSkin('oldschool-mmo'))
 
-    expect(output).toContain('Mode: MMO Mode')
-    expect(output).toContain('Theme: MMO Default')
-    expect(output).toContain('XP')
+    expect(output).toContain('Skin: Oldschool MMO')
+    expect(output).toContain('XP / reputation')
     expect(output).toContain('reputation')
-    expect(output).toContain('party member')
+    expect(output).toContain('party helper')
     expect(output).toContain('adventure log')
   })
 
   it('formats an explainable scorecard with score deltas', () => {
     const state = runBattle(demoEvents, 'Demo Mode')
-    const output = formatScorecard(state, getMode('moba'))
+    const output = formatScorecard(state, getSkin('moba'))
 
-    expect(output).toContain('Scorecard (MOBA Mode)')
+    expect(output).toContain('Scorecard (MOBA)')
     expect(output).toContain('objective score')
     expect(output).toContain('observer feed')
     expect(output).toContain('Winner: Codex')

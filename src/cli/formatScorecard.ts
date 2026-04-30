@@ -1,7 +1,7 @@
 import type { BattleState } from '../arena/types'
-import type { GameMode } from '../arena/modes'
+import type { ArenaSkin } from '../arena/skins'
 
-export function formatScorecard(state: BattleState, mode: GameMode): string {
+export function formatScorecard(state: BattleState, skin: ArenaSkin): string {
   const deltas = state.deltas
     .map((delta) => {
       const sign = delta.points >= 0 ? '+' : ''
@@ -10,16 +10,16 @@ export function formatScorecard(state: BattleState, mode: GameMode): string {
     .join('\n')
 
   return [
-    `Scorecard (${mode.name})`,
+    `Scorecard (${skin.name})`,
     `Match: ${state.label}`,
-    `Codex ${mode.labels.score}: ${state.agents.codex.score}`,
-    `Claude Code ${mode.labels.score}: ${state.agents.claude.score}`,
-    `${mode.labels.momentum}: Codex ${state.agents.codex.momentum}, Claude Code ${state.agents.claude.momentum}`,
+    `Codex ${skin.labels.score}: ${state.agents.codex.score}`,
+    `Claude Code ${skin.labels.score}: ${state.agents.claude.score}`,
+    `${skin.labels.momentum}: Codex ${state.agents.codex.momentum}, Claude Code ${state.agents.claude.momentum}`,
     `Winner: ${state.winner === 'tie' ? 'Tie' : state.winner ? state.agents[state.winner].name : 'pending'}`,
     '',
-    `${mode.labels.feed}:`,
-    `Center ${mode.labels.objective}: ${mode.labels.finalObjective}`,
-    `${mode.labels.assist}: ${state.agents.codex.familiars.length + state.agents.claude.familiars.length}`,
+    `${skin.labels.feed}:`,
+    `Center ${skin.labels.blocker}: ${skin.labels.finalResult}`,
+    `${skin.labels.assist}: ${state.agents.codex.familiars.length + state.agents.claude.familiars.length}`,
     '',
     'Decisive moments:',
     ...state.highlights.map((highlight) => `- ${highlight}`),

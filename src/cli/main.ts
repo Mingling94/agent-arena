@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 import { demoEvents } from '../arena/demoEvents'
 import { runBattle } from '../arena/engine'
-import { getMode } from '../arena/modes'
-import { defaultThemeForMode, getTheme } from '../arena/themes'
+import { getSkin } from '../arena/skins'
 import { formatScorecard } from './formatScorecard'
 import { renderTerminal } from './renderTerminal'
 
@@ -15,31 +14,34 @@ const command = process.argv[2] ?? 'demo'
 const args = process.argv.slice(3)
 
 try {
-  const mode = getMode(readOption(args, '--mode', 'moba'))
-  const themeName = readOption(args, '--theme', defaultThemeForMode(mode.id))
-  const theme = getTheme(themeName, mode.id)
+  const skinName = readOption(args, '--skin', readOption(args, '--mode', 'moba'))
+  const skin = getSkin(skinName)
 
-  if (theme.warning) console.warn(theme.warning)
+  if (skin.warning) console.warn(skin.warning)
 
   if (command === 'demo') {
     const state = runBattle(demoEvents, 'Demo Mode')
-    console.log(renderTerminal(state, mode, theme))
+    console.log(renderTerminal(state, skin))
   } else if (command === 'scorecard') {
     const state = runBattle(demoEvents, 'Demo Mode')
-    console.log(formatScorecard(state, mode))
+    console.log(formatScorecard(state, skin))
   } else {
-    console.error('Usage: pnpm arena demo [--mode moba|mmo] [--theme terminal|moba-default|mmo-default|./path]')
-    console.error('   or: pnpm arena scorecard [--mode moba|mmo]')
+    printUsage()
     process.exit(1)
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error))
-  console.error('Usage: pnpm arena demo [--mode moba|mmo] [--theme terminal|moba-default|mmo-default|./path]')
-  console.error('   or: pnpm arena scorecard [--mode moba|mmo]')
+  printUsage()
   process.exit(1)
 }
 
 function readOption(args: string[], name: string, fallback: string): string {
   const index = args.indexOf(name)
   return index >= 0 ? (args[index + 1] ?? fallback) : fallback
+}
+
+function printUsage(): void {
+  console.error('Usage: pnpm arena demo [--skin moba|oldschool-mmo|./path]')
+  console.error('   or: pnpm arena demo [--mode moba|oldschool-mmo]')
+  console.error('   or: pnpm arena scorecard [--skin moba|oldschool-mmo]')
 }
